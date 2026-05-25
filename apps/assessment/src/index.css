@@ -1,0 +1,105 @@
+@import "tailwindcss";
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background-color: #f9fafb;
+  }
+}
+
+@layer utilities {
+  .font-display {
+    font-family: "SF Pro Display", -apple-system, sans-serif;
+  }
+
+  .text-report {
+    font-size: 18px;
+    line-height: 1.8;
+    color: #2d3748;
+  }
+
+  .animate-pulse-slow {
+    animation: pulse 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+}
+
+/* Typewriter cursor */
+.typewriter-cursor {
+  display: inline-block;
+  width: 2px;
+  height: 1.1em;
+  background-color: #5b5fed;
+  margin-left: 2px;
+  vertical-align: text-bottom;
+  animation: blink 1s step-end infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+/* Slide transition */
+.slide-enter {
+  transform: translateX(100%);
+  opacity: 0;
+}
+.slide-enter-active {
+  transform: translateX(0);
+  opacity: 1;
+  transition: transform 300ms ease, opacity 300ms ease;
+}
+.slide-exit {
+  transform: translateX(0);
+  opacity: 1;
+}
+.slide-exit-active {
+  transform: translateX(-100%);
+  opacity: 0;
+  transition: transform 300ms ease, opacity 300ms ease;
+}
+
+/* Gradient backgrounds */
+.bg-brand-gradient {
+  background: linear-gradient(135deg, #5b5fed 0%, #8b5cf6 100%);
+}
+
+.bg-result-gradient {
+  background: linear-gradient(180deg, #5b5fed 0%, #8b5cf6 40%, #f9fafb 100%);
+}
+
+/* Glow animation for loading */
+@keyframes glow {
+  0%, 100% { box-shadow: 0 0 20px rgba(91, 95, 237, 0.3); }
+  50% { box-shadow: 0 0 40px rgba(91, 95, 237, 0.6), 0 0 60px rgba(139, 92, 246, 0.3); }
+}
+
+.animate-glow {
+  animation: glow 2s ease-in-out infinite;
+}
+
+/* Fade in animation */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.5s ease forwards;
+}
+
+/* Number counter animation */
+@keyframes countUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-count-up {
+  animation: countUp 0.4s ease forwards;
+}
