@@ -75,7 +75,9 @@
       "Bash(curl -s -X POST http://localhost:8000/api/v1/auth/login -H \"Content-Type: application/json\" -d '{\"username\":\"dev\",\"password\":\"dev123\"}')",
       "Bash(python -m json.tool)",
       "PowerShell(3000..3005 | ForEach-Object { $port = $_; $result = netstat -ano | Select-String \":$port\\\\s\" | Select-String \"LISTENING\"; if \\($result\\) { $procId = \\($result.ToString\\(\\).Trim\\(\\) -split '\\\\s+'\\)[-1]; Stop-Process -Id $procId -Force -ErrorAction SilentlyContinue } })",
-      "Bash(curl -s http://localhost:3000/api/v1/auth/login -X POST -H \"Content-Type: application/json\" -d '{\"username\":\"dev\",\"password\":\"dev123\"}')"
+      "Bash(curl -s http://localhost:3000/api/v1/auth/login -X POST -H \"Content-Type: application/json\" -d '{\"username\":\"dev\",\"password\":\"dev123\"}')",
+      "Bash(Remove-Item -Path \"d:\\\\Bochuangyuan-Frontend\\\\apps\\\\entrepreneur-dashboard\\\\package-lock.json\" -Force)",
+      "PowerShell(Write-Host \"=== .env.example ===\" ; Get-Content \"d:\\\\Bochuangyuan-Frontend\\\\apps\\\\entrepreneur-dashboard\\\\.env.example\" ; Write-Host \"`n=== package.json clean script ===\" ; \\(Get-Content \"d:\\\\Bochuangyuan-Frontend\\\\apps\\\\entrepreneur-dashboard\\\\package.json\" | Select-String \"clean\"\\) ; Write-Host \"`n=== package-lock.json 是否已删除 ===\" ; if \\(Test-Path \"d:\\\\Bochuangyuan-Frontend\\\\apps\\\\entrepreneur-dashboard\\\\package-lock.json\"\\) { \"❌ 还存在\" } else { \"✅ 已删除\" } ; Write-Host \"`n=== README.md 是否存在 ===\" ; if \\(Test-Path \"d:\\\\Bochuangyuan-Frontend\\\\README.md\"\\) { \"✅ 已创建\" } else { \"❌ 不存在\" })"
     ]
   }
 }
