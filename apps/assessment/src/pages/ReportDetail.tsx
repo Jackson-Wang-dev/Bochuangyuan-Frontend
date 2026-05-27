@@ -11,6 +11,7 @@ import type { AssessmentSession } from '../types'
 import { DIMENSIONS } from '../types'
 import { generateAiReport } from '../utils/aiReportSimulator'
 
+// TODO: remove buildDemoSession fallback once reportUuid lookup is backed by real API
 // Fallback demo session using Edison persona
 function buildDemoSession(): AssessmentSession {
   const edisonPersona = personas.find((p) => p.code === 'edison')!

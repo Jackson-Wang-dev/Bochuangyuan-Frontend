@@ -6,6 +6,7 @@ import { ProjectFormModal } from '@/components/ProjectFormModal'
 import { Check } from 'lucide-react'
 import type { BusinessPlan } from '@/types'
 
+// TODO: replace with API call to fetch user's business plans
 const BP_MOCKS: BusinessPlan[] = [
   { id: 'bp-1', title: '商业计划书1', lastModified: '15:21', previewText: '以本项目代表了我们下一财年的核心计划...', isLinked: true },
 ]

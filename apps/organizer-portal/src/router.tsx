@@ -14,6 +14,10 @@ const ExpertSelection    = lazy(() => import('@/pages/expert/Selection'))
 const ExpertAssignment   = lazy(() => import('@/pages/expert/Assignment'))
 const StaffManagement    = lazy(() => import('@/pages/staff/Management'))
 const OperationLog       = lazy(() => import('@/pages/logs/OperationLog'))
+const FormBuilderPage    = lazy(() => import('@/pages/contest-config/FormBuilderPage'))
+const ReviewRulePage     = lazy(() => import('@/pages/contest-config/ReviewRulePage'))
+const ReviewAssignmentPage = lazy(() => import('@/pages/review/AssignmentPage'))
+const ReviewMonitorPage  = lazy(() => import('@/pages/review/MonitorPage'))
 
 function Spinner() {
   return (
@@ -43,15 +47,19 @@ export const router = createBrowserRouter([
         path: 'competitions/:id',
         element: <S><CompetitionDetail /></S>,
         children: [
-          { index: true,              element: <Navigate to="projects" replace /> },
-          { path: 'projects',         element: <S><ProjectListPage /></S> },
-          { path: 'score-overview',   element: <S><ScoreOverviewPage /></S> },
-          { path: 'experts',          element: <S><ExpertSelection /></S> },
-          { path: 'assignment',       element: <S><ExpertAssignment /></S> },
+          { index: true,                element: <Navigate to="projects" replace /> },
+          { path: 'projects',           element: <S><ProjectListPage /></S> },
+          { path: 'score-overview',     element: <S><ScoreOverviewPage /></S> },
+          { path: 'experts',            element: <S><ExpertSelection /></S> },
+          { path: 'assignment',         element: <S><ExpertAssignment /></S> },
+          { path: 'form-builder',       element: <S><FormBuilderPage /></S> },
+          { path: 'review-rules',       element: <S><ReviewRulePage /></S> },
+          { path: 'review/assignment',  element: <S><ReviewAssignmentPage /></S> },
+          { path: 'review/monitor',     element: <S><ReviewMonitorPage /></S> },
         ],
       },
-      { path: 'competitions/:id/edit',              element: <S><CompetitionEdit /></S> },
-      { path: 'competitions/:id/projects/:enrollId', element: <S><ProjectDetailPage /></S> },
+      { path: 'competitions/:id/edit',                element: <S><CompetitionEdit /></S> },
+      { path: 'competitions/:id/projects/:enrollId',  element: <S><ProjectDetailPage /></S> },
       { path: 'staff',               element: <S><StaffManagement /></S> },
       { path: 'logs',                element: <S><OperationLog /></S> },
     ],

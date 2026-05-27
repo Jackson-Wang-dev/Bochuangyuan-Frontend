@@ -1,3 +1,4 @@
+// TODO: replace with API call to fetch question bank from DB (GET /assessment/questions)
 import type { Question } from '../types'
 
 export const questions: Question[] = [

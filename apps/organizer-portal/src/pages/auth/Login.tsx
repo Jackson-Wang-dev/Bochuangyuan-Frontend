@@ -11,6 +11,7 @@ export default function LoginPage() {
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault()
+    // TODO: replace with real organizer auth API (account + password login)
     login(
       { organizerId: 'org-001', name: '管理员', organization: account || '博创园主办方' },
       'mock-token',

@@ -1,5 +1,6 @@
 import { Bell, CheckCircle } from 'lucide-react'
 
+// TODO: replace with API call to fetch notifications (endpoint TBD)
 const MOCK_NOTICES = [
   {
     id: 'n-1',

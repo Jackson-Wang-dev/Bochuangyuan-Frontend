@@ -1,6 +1,7 @@
 import { ScoreMatrix } from '@/components/ScoreMatrix'
 import type { EnrollmentRecord } from '@bochuangyuan/types'
 
+// TODO: replace with API call to fetch scored enrollments for score matrix (endpoint TBD)
 const MOCK_ENROLLMENTS: EnrollmentRecord[] = [
   {
     enrollId: 'enr-2', competitionId: 'comp-1', projectId: 'proj-2',
@@ -29,6 +30,7 @@ export default function ScoreOverviewPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-sm font-bold text-slate-700">评分汇总矩阵</h2>
+        {/* TODO: wire up Excel export API */}
         <button className="px-4 py-2 border border-slate-200 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-colors">
           导出 Excel
         </button>

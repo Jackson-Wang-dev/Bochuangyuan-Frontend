@@ -1,1 +1,6 @@
 export { apiClient } from './client'
+export { formBuilderApi } from './formBuilder'
+export { reviewRuleApi } from './reviewRule'
+export { reviewTaskApi } from './reviewTask'
+export { documentsApi } from './documents'
+export type { DocumentResponse, DocumentSessionResponse, DocumentVersionResponse } from './documents'

@@ -1,3 +1,4 @@
+// TODO: replace this entire module with a real AI report generation API call
 import type { Answer, AiReport, DimensionScore, Persona } from '../types'
 import type { Question } from '../types'
 import {

@@ -6,6 +6,17 @@ export interface ScoreDimension {
   comment?: string
 }
 
+// 初审 = blind review (desensitized), 复审 = final review (full info)
+export type ReviewStage = 'initial' | 'final'
+
+export interface ProjectSubmitter {
+  name: string
+  school: string
+  phone: string
+  email: string
+  teamName?: string
+}
+
 export interface ReviewTask {
   taskId: string
   projectId: string
@@ -15,8 +26,10 @@ export interface ReviewTask {
   competitionId: string
   competitionName: string
   status: 'pending' | 'scoring' | 'done'
+  reviewStage: ReviewStage
   deadline?: string
   assignedAt: string
+  submitter?: ProjectSubmitter  // only populated in 'final' stage
 }
 
 export interface ScoreDraft {

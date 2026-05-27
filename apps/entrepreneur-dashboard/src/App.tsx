@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ProfileHeader } from './components/ProfileHeader';
 import { GrowthTimeline } from './components/GrowthTimeline';
@@ -14,14 +14,14 @@ import { ProjectFormModal } from './components/ProjectFormModal';
 import { NotificationPopover } from './components/NotificationPopover';
 import { AssessmentModal } from './components/AssessmentModal';
 import { BPManager } from './components/BPManager';
-import { BPEditor } from './components/BPEditor';
 import { BPSelectionModal } from './components/BPSelectionModal';
 import { ProjectDetails } from './components/ProjectDetails';
-import { BPPreviewModal } from './components/BPPreviewModal';
 import { ArchiveDashboard } from './components/ArchiveDashboard';
 import { CompetitionDetail } from './components/CompetitionDetail';
 import { UserProfileMenu } from './components/UserProfileMenu';
 import { ProjectModule2 } from './components/ProjectModule2';
+import { WPSFrame } from './components/WPSFrame';
+import { documentsApi, type DocumentResponse, type DocumentSessionResponse } from '@bochuangyuan/api';
 import { PersonalityData, TimelineEvent, GrowthDataPoint, Project, BusinessPlan } from './types';
 import { User, TrendingUp, Search, Bell, Settings, MessageSquare, Briefcase, Calendar, LayoutDashboard, HelpCircle, ChevronDown, RefreshCw, Upload, Globe, Check, X as CloseIcon, FileText, Sparkles } from 'lucide-react';
 import { cn } from './lib/utils';
@@ -68,6 +68,7 @@ const GROWTH_DATA: GrowthDataPoint[] = [
   { date: 'Apr', technical: 92, market: 75, health: 84, aiAdoption: 120, riskControl: 92 },
 ];
 
+// TODO: replace with API call to fetch user's enrolled projects
 const PROJECTS: Project[] = [
   { id: 'prj-1', name: '智能城市交通管理系统', competition: '2024 全国高校人工智能创新大赛', deadline: '2024-06-20', status: 'pending', bpLink: '#', remainingDays: 2 },
   { id: 'prj-2', name: '智能城市交通管理系统', competition: '2024 全国高校人工智能创新大赛', deadline: '2024-06-20', status: 'pending', bpLink: '#', remainingDays: 2 },
@@ -79,6 +80,7 @@ const PROJECTS: Project[] = [
   { id: 'prj-8', name: '绿色能源监控平台', competition: '可持续发展科技创新奖', deadline: '2024-05-15', status: 'completed', bpLink: '#', remainingDays: 2 },
 ];
 
+// TODO: replace with API call to fetch user's business plans
 const BP_MOCKS: BusinessPlan[] = [
   {
     id: 'bp-1',
@@ -101,22 +103,52 @@ type ViewMode = 'cockpit' | 'bp_edit' | 'workspace' | 'project_details' | 'compe
 export default function App() {
   const [activeView, setActiveView] = useState<ViewMode>('cockpit');
   const [activeTab, setActiveTab] = useState<'profile' | 'growth'>('growth');
-  const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
   const [isAssessmentOpen, setIsAssessmentOpen] = useState(false);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isReuploadOptionsOpen, setIsReuploadOptionsOpen] = useState(false);
   const [isOnlineBPSelectOpen, setIsOnlineBPSelectOpen] = useState(false);
-  const [currentPlan, setCurrentPlan] = useState<BusinessPlan | null>(null);
   const [currentProject, setCurrentProject] = useState<Project | null>(null);
-  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
-  const [previewPlan, setPreviewPlan] = useState<BusinessPlan | null>(null);
   const [showSuccessToast, setShowSuccessToast] = useState(false);
 
-  const handlePreviewBP = (plan: BusinessPlan) => {
-    setPreviewPlan(plan);
-    setIsPreviewOpen(true);
+  // BP documents state
+  const [documents, setDocuments] = useState<DocumentResponse[]>([]);
+  const [loadingDocs, setLoadingDocs] = useState(false);
+  const [uploadingDoc, setUploadingDoc] = useState(false);
+  const [wpsState, setWpsState] = useState<{ title: string; session: DocumentSessionResponse } | null>(null);
+  const bpFileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (activeView === 'bp_edit' && documents.length === 0 && !loadingDocs) {
+      setLoadingDocs(true);
+      documentsApi.list('business_plan')
+        .then(setDocuments)
+        .catch(console.error)
+        .finally(() => setLoadingDocs(false));
+    }
+  }, [activeView]);
+
+  const openWPS = async (doc: DocumentResponse, mode: 'edit' | 'preview') => {
+    try {
+      const session = await documentsApi.createSession(doc.id, mode);
+      setWpsState({ title: doc.name, session });
+    } catch (err) {
+      console.error('Failed to create WPS session', err);
+    }
+  };
+
+  const handleUploadDoc = async (file: File) => {
+    setUploadingDoc(true);
+    try {
+      const doc = await documentsApi.upload(file);
+      setDocuments((prev) => [doc, ...prev]);
+      await openWPS(doc, 'edit');
+    } catch (err) {
+      console.error('Upload failed', err);
+    } finally {
+      setUploadingDoc(false);
+    }
   };
 
   const handleRegisterQuick = () => {
@@ -135,13 +167,12 @@ export default function App() {
   };
 
   const handleCreateBP = () => {
-    setCurrentPlan(null);
-    setIsEditorOpen(true);
+    bpFileInputRef.current?.click();
   };
 
-  const handleEditBP = (plan: BusinessPlan) => {
-    setCurrentPlan(plan);
-    setIsEditorOpen(true);
+  // Called from ProjectDetails with a legacy BusinessPlan shape — just navigate to bp_edit
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const handleEditBP = (_plan: BusinessPlan) => {
     setActiveView('bp_edit');
   };
 
@@ -165,11 +196,12 @@ export default function App() {
             onlinePlans={BP_MOCKS}
           />
         )}
-        {isEditorOpen && (
-          <BPEditor 
-            key="bp-editor"
-            plan={currentPlan} 
-            onClose={() => setIsEditorOpen(false)} 
+        {wpsState && (
+          <WPSFrame
+            key="wps-frame"
+            title={wpsState.title}
+            session={wpsState.session}
+            onClose={() => setWpsState(null)}
           />
         )}
         {isAssessmentOpen && (
@@ -179,13 +211,17 @@ export default function App() {
             onClose={() => setIsAssessmentOpen(false)} 
           />
         )}
-        <BPPreviewModal 
-          isOpen={isPreviewOpen}
-          onClose={() => {
-            setIsPreviewOpen(false);
-            setPreviewPlan(null);
+        {/* hidden file input for "新建BP" in the bp_edit view */}
+        <input
+          ref={bpFileInputRef}
+          type="file"
+          className="hidden"
+          accept=".doc,.docx,.xls,.xlsx,.ppt,.pptx,.pdf"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) handleUploadDoc(file);
+            e.currentTarget.value = '';
           }}
-          plan={previewPlan}
         />
 
         {/* Reupload Flow Modals */}
@@ -402,11 +438,14 @@ export default function App() {
                         )}
 
                         {activeView === 'bp_edit' && (
-                            <BPManager 
-                              plans={BP_MOCKS} 
-                               onCreateNew={handleCreateBP}
-                              onEdit={handleEditBP}
-                              onPreview={handlePreviewBP}
+                            <BPManager
+                              documents={documents}
+                              loading={loadingDocs}
+                              uploading={uploadingDoc}
+                              onCreateNew={handleCreateBP}
+                              onEdit={(doc) => openWPS(doc, 'edit')}
+                              onPreview={(doc) => openWPS(doc, 'preview')}
+                              onUpload={handleUploadDoc}
                             />
                         )}
 

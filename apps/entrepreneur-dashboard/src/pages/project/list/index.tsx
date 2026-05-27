@@ -7,6 +7,7 @@ import { BPEditor } from '@/components/BPEditor'
 import { BPSelectionModal } from '@/components/BPSelectionModal'
 import type { Project, BusinessPlan } from '@/types'
 
+// TODO: replace with API call to fetch user's enrolled projects
 const PROJECTS: Project[] = [
   { id: 'prj-1', name: '智能城市交通管理系统', competition: '2024 全国高校人工智能创新大赛', deadline: '2024-06-20', status: 'pending', bpLink: '#', remainingDays: 2 },
   { id: 'prj-2', name: '智能城市交通管理系统', competition: '2024 全国高校人工智能创新大赛', deadline: '2024-06-20', status: 'pending', bpLink: '#', remainingDays: 2 },
@@ -16,6 +17,7 @@ const PROJECTS: Project[] = [
   { id: 'prj-6', name: '绿色能源监控平台', competition: '可持续发展科技创新奖', deadline: '2024-05-15', status: 'completed', bpLink: '#', remainingDays: 2 },
 ]
 
+// TODO: replace with API call to fetch user's business plans
 const BP_MOCKS: BusinessPlan[] = [
   { id: 'bp-1', title: '商业计划书1', lastModified: '15:21', previewText: '以本项目代表了我们下一财年的核心计划...', isLinked: true },
   { id: 'bp-2', title: '商业计划书2', lastModified: '昨日 10:30', previewText: '基于AI算法的城市交通疏导方案...', isLinked: false },

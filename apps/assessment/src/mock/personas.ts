@@ -1,3 +1,4 @@
+// TODO: replace with API call to fetch persona definitions from DB (GET /assessment/personas)
 import type { Persona } from '../types'
 
 export const personas: Persona[] = [

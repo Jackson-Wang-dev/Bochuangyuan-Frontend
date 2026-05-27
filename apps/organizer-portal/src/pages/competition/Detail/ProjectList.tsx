@@ -2,6 +2,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { ProjectTable } from '@/components/ProjectTable'
 import type { EnrollmentRecord } from '@bochuangyuan/types'
 
+// TODO: replace with API call to fetch enrollments for competition (endpoint TBD)
 const MOCK_ENROLLMENTS: EnrollmentRecord[] = [
   {
     enrollId: 'enr-1', competitionId: 'comp-1', projectId: 'proj-1',

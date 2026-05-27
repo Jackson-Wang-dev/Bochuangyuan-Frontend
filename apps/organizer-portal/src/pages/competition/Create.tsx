@@ -2,7 +2,9 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, ArrowRight, Check } from 'lucide-react'
 import { DimensionEditor } from '@/components/DimensionEditor'
-import type { ScoreDimensionConfig } from '@bochuangyuan/types'
+import { FormBuilder, useFormBuilderStore } from '@bochuangyuan/ui'
+import type { ScoreDimensionConfig, FormSchema } from '@bochuangyuan/types'
+import { nanoid } from 'nanoid'
 
 const DEFAULT_DIMS: ScoreDimensionConfig[] = [
   { key: 'technology', label: '技术成熟度', weight: 30, description: '' },
@@ -11,7 +13,33 @@ const DEFAULT_DIMS: ScoreDimensionConfig[] = [
   { key: 'innovation', label: '创新性',     weight: 20, description: '' },
 ]
 
-type Step = 1 | 2 | 3
+const DEFAULT_FORM: FormSchema = {
+  id: nanoid(),
+  name: '报名表单',
+  fields: [
+    { id: nanoid(), type: 'text',     label: '项目名称',   required: true },
+    { id: nanoid(), type: 'text',     label: '联系人',     required: true },
+    { id: nanoid(), type: 'text',     label: '联系电话',   required: true, placeholder: '请输入手机号' },
+    {
+      id: nanoid(),
+      type: 'select',
+      label: '参赛组别',
+      required: true,
+      options: [
+        { label: '初创组', value: 'startup' },
+        { label: '成长组', value: 'growth' },
+        { label: '成熟组', value: 'mature' },
+      ],
+    },
+    { id: nanoid(), type: 'textarea', label: '项目简介', required: true, description: '请简要描述项目核心亮点（300字以内）' },
+  ],
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
+}
+
+type Step = 1 | 2 | 3 | 4
+
+const STEPS = ['基本信息', '报名表单', '评分维度', '预览确认']
 
 export default function CreateCompetitionPage() {
   const navigate = useNavigate()
@@ -26,19 +54,21 @@ export default function CreateCompetitionPage() {
 
   const totalWeight = dimensions.reduce((s, d) => s + d.weight, 0)
   const canNext2 = form.name && form.enrollDeadline && form.reviewDeadline
-  const canNext3 = totalWeight === 100 && dimensions.every((d) => d.label)
+  const canNext4 = totalWeight === 100 && dimensions.every((d) => d.label)
+
+  const formFields = useFormBuilderStore((s) => s.fields)
 
   const handlePublish = () => {
     // TODO: call createCompetition API
     navigate('/competitions')
   }
 
-  const STEPS = ['基本信息', '评分维度', '预览确认']
+  const isFullWidth = step === 2
 
   return (
-    <div className="max-w-2xl space-y-6">
+    <div className={isFullWidth ? 'h-full flex flex-col' : 'max-w-2xl space-y-6'}>
       {/* Header */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 flex-shrink-0">
         <button onClick={() => navigate(-1)} className="text-slate-400 hover:text-slate-600 transition-colors">
           <ArrowLeft className="w-5 h-5" />
         </button>
@@ -46,7 +76,7 @@ export default function CreateCompetitionPage() {
       </div>
 
       {/* Steps */}
-      <div className="flex items-center gap-0">
+      <div className="flex items-center gap-0 flex-shrink-0">
         {STEPS.map((label, i) => {
           const n = (i + 1) as Step
           const active = step === n
@@ -65,7 +95,7 @@ export default function CreateCompetitionPage() {
         })}
       </div>
 
-      {/* Step 1 */}
+      {/* Step 1 — 基本信息 */}
       {step === 1 && (
         <div className="glass-card p-6 space-y-4">
           <h2 className="text-sm font-bold text-slate-700">基本信息</h2>
@@ -120,18 +150,47 @@ export default function CreateCompetitionPage() {
         </div>
       )}
 
-      {/* Step 2 */}
+      {/* Step 2 — 报名表单（全宽高） */}
       {step === 2 && (
+        <div className="flex-1 flex flex-col gap-3 min-h-0">
+          <div className="flex items-center justify-between flex-shrink-0">
+            <p className="text-sm text-slate-500">配置参赛者提交报名时需要填写的信息</p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setStep(1)}
+                className="flex items-center gap-2 px-4 py-2 border border-slate-200 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50 transition-colors"
+              >
+                <ArrowLeft className="w-4 h-4" /> 上一步
+              </button>
+              <button
+                onClick={() => setStep(3)}
+                className="flex items-center gap-2 px-6 py-2 bg-brand-blue text-white rounded-xl text-sm font-bold hover:bg-brand-blue/90 transition-colors"
+              >
+                下一步 <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+          <div className="flex-1 glass-card overflow-hidden min-h-0">
+            <FormBuilder
+              mode="form"
+              initialSchema={DEFAULT_FORM}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Step 3 — 评分维度 */}
+      {step === 3 && (
         <div className="glass-card p-6 space-y-4">
           <h2 className="text-sm font-bold text-slate-700">评分维度配置</h2>
           <DimensionEditor dimensions={dimensions} onChange={setDimensions} />
           <div className="flex justify-between">
-            <button onClick={() => setStep(1)} className="flex items-center gap-2 px-4 py-2.5 border border-slate-200 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50 transition-colors">
+            <button onClick={() => setStep(2)} className="flex items-center gap-2 px-4 py-2.5 border border-slate-200 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50 transition-colors">
               <ArrowLeft className="w-4 h-4" /> 上一步
             </button>
             <button
-              onClick={() => setStep(3)}
-              disabled={!canNext3}
+              onClick={() => setStep(4)}
+              disabled={!canNext4}
               className="flex items-center gap-2 px-6 py-2.5 bg-brand-blue text-white rounded-xl text-sm font-bold disabled:opacity-40 hover:bg-brand-blue/90 transition-colors"
             >
               下一步 <ArrowRight className="w-4 h-4" />
@@ -140,8 +199,8 @@ export default function CreateCompetitionPage() {
         </div>
       )}
 
-      {/* Step 3 */}
-      {step === 3 && (
+      {/* Step 4 — 预览确认 */}
+      {step === 4 && (
         <div className="space-y-4">
           <div className="glass-card p-6 space-y-3">
             <h2 className="text-sm font-bold text-slate-700">预览确认</h2>
@@ -158,6 +217,13 @@ export default function CreateCompetitionPage() {
                 <span className="text-slate-500">评审截止</span>
                 <span className="font-semibold text-slate-800">{form.reviewDeadline}</span>
               </div>
+              <div className="py-2 border-b border-slate-50">
+                <span className="text-slate-500 block mb-2">报名表单</span>
+                <p className="text-xs text-slate-600">
+                  {formFields.length} 个字段：
+                  {formFields.map((f) => f.label).join('、')}
+                </p>
+              </div>
               <div className="py-2">
                 <span className="text-slate-500 block mb-2">评分维度</span>
                 <div className="space-y-1">
@@ -172,7 +238,7 @@ export default function CreateCompetitionPage() {
             </div>
           </div>
           <div className="flex justify-between">
-            <button onClick={() => setStep(2)} className="flex items-center gap-2 px-4 py-2.5 border border-slate-200 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50 transition-colors">
+            <button onClick={() => setStep(3)} className="flex items-center gap-2 px-4 py-2.5 border border-slate-200 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50 transition-colors">
               <ArrowLeft className="w-4 h-4" /> 上一步
             </button>
             <button

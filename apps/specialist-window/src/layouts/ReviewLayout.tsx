@@ -1,12 +1,12 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
-import { ClipboardList, CheckSquare, Bell, LogOut } from 'lucide-react'
+import { Trophy, ClipboardList, Bell, LogOut } from 'lucide-react'
 import { useUserStore } from '@/store/userStore'
 import { cn } from '@/lib/utils'
 
 const NAV_ITEMS = [
-  { to: '/review/queue',     icon: ClipboardList, label: '待评审' },
-  { to: '/review/completed', icon: CheckSquare,   label: '已完成' },
-  { to: '/notifications',    icon: Bell,          label: '消息通知' },
+  { to: '/competitions',  icon: Trophy,        label: '我的赛事' },
+  { to: '/review/queue',  icon: ClipboardList, label: '全部任务' },
+  { to: '/notifications', icon: Bell,          label: '消息通知' },
 ]
 
 export function ReviewLayout() {

@@ -2,6 +2,7 @@ import { Search, Plus, X } from 'lucide-react'
 import { useState } from 'react'
 import type { Expert } from '@bochuangyuan/types'
 
+// TODO: replace with API call to fetch platform expert pool (endpoint TBD)
 const PLATFORM_EXPERTS: Expert[] = [
   { expertId: 'e-1', name: '张志远', organization: '清华大学', domain: ['AI', '芯片'], source: 'platform' },
   { expertId: 'e-2', name: '李梅',   organization: '北京大学', domain: ['医疗', '生物'],  source: 'platform' },

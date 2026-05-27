@@ -3,6 +3,7 @@ import { Plus } from 'lucide-react'
 import { CompetitionCard } from '@/components/CompetitionCard'
 import type { OrganizerCompetition } from '@bochuangyuan/types'
 
+// TODO: replace with API call to fetch organizer's competitions (endpoint TBD)
 const MOCK_COMPETITIONS: OrganizerCompetition[] = [
   {
     competitionId: 'comp-1',

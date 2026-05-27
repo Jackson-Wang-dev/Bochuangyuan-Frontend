@@ -8,6 +8,7 @@ export default function AuthPage() {
   const navigate = useNavigate()
 
   const handleLogin = () => {
+    // TODO: replace with real phone SMS auth and WeChat OAuth
     navigate('/')
   }
 
@@ -51,6 +52,7 @@ export default function AuthPage() {
                 placeholder="验证码"
                 className="flex-1 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-blue-500"
               />
+              {/* TODO: call SMS send API on click */}
               <button className="px-4 py-3 bg-slate-100 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-200 transition-colors whitespace-nowrap">
                 获取验证码
               </button>

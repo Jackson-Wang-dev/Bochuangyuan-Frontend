@@ -14,6 +14,7 @@ const DEFAULT_DIMS: ScoreDimensionConfig[] = [
 export default function EditCompetitionPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  // TODO: initialize from fetchCompetitionDetail(id) instead of hardcoded strings
   const [name, setName] = useState('2024 全国大学生创业大赛')
   const [description, setDescription] = useState('面向全国高校在校生及应届生的创业竞赛')
   const [dimensions, setDimensions] = useState<ScoreDimensionConfig[]>(DEFAULT_DIMS)

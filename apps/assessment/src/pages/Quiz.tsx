@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import OptionCard from '../components/OptionCard'
 import ProgressBar from '../components/ProgressBar'
 import StoryScene from '../components/StoryScene'
+// TODO: replace with questions fetched from API
 import { questions } from '../mock/questions'
 import { useAssessmentStore } from '../store/assessmentStore'
 import { useUserStore } from '../store/userStore'

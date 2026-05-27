@@ -8,6 +8,10 @@ const TABS = [
   { label: '评分汇总', to: 'score-overview' },
   { label: '专家遴选', to: 'experts' },
   { label: '评审分配', to: 'assignment' },
+  { label: '报名表单', to: 'form-builder' },
+  { label: '评审规则', to: 'review-rules' },
+  { label: '评审安排', to: 'review/assignment' },
+  { label: '评审监控', to: 'review/monitor' },
 ]
 
 export default function CompetitionDetailPage() {

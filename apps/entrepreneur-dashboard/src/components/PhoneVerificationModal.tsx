@@ -26,6 +26,7 @@ export const PhoneVerificationModal: React.FC<Props> = ({ isOpen, onClose, onSuc
   }, [countdown]);
 
   const handleSendCode = () => {
+    // TODO: call SMS send API before starting countdown
     setCountdown(60);
   };
 
@@ -42,7 +43,7 @@ export const PhoneVerificationModal: React.FC<Props> = ({ isOpen, onClose, onSuc
   };
 
   const handleVerifyOld = () => {
-    // Mock verification
+    // TODO: call verify-old-phone API with code; proceed on success
     setStep('enter-new');
     setCode(['', '', '', '', '', '']);
     setCountdown(0);
@@ -56,6 +57,7 @@ export const PhoneVerificationModal: React.FC<Props> = ({ isOpen, onClose, onSuc
   };
 
   const handleVerifyNew = () => {
+    // TODO: call verify-new-phone API with code and newPhone; proceed on success
     setStep('success');
     setTimeout(() => {
       onSuccess(newPhone);

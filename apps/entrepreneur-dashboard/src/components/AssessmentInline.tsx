@@ -24,7 +24,7 @@ const INSIGHT_ICONS: Record<string, React.ComponentType<{ className?: string }>>
 
 export const AssessmentInline: React.FC = () => {
   const { user } = useUserStore();
-  const nickname = user?.nickname;
+  const nickname = user?.username;
   const { step, currentIdx, progress, scores, startTest, next, reset } = useAssessmentStore();
 
   const topDim = scores ? getTopDim(scores) : null;

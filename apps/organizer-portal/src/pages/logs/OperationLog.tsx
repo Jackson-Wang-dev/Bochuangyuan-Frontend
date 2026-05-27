@@ -1,6 +1,7 @@
 import { History } from 'lucide-react'
 import type { OperationLog } from '@bochuangyuan/types'
 
+// TODO: replace with API call to fetch operation logs (endpoint TBD)
 const MOCK_LOGS: OperationLog[] = [
   { logId: 'log-1', operatorId: 'org-001', operatorName: '管理员', action: '发布赛事', targetType: 'competition', targetId: 'comp-1', detail: '发布赛事"2024 全国大学生创业大赛"', createdAt: '2024-01-15 10:00:00' },
   { logId: 'log-2', operatorId: 'org-001', operatorName: '管理员', action: '分配评委', targetType: 'assignment', targetId: 'assign-1', detail: '为赛事分配 2 位评委', createdAt: '2024-06-01 14:30:00' },

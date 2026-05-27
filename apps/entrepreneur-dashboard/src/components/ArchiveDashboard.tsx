@@ -37,6 +37,7 @@ import CircularGallery from './CircularGallery';
 import { AssessmentCard } from './AssessmentCard';
 import { TimelineEvent, GrowthDataPoint, PersonalityData } from '../types';
 
+// TODO: replace with API call to fetch available competitions for enrollment
 const COMPETITIONS = [
   {
     id: 1,
@@ -219,6 +220,7 @@ export const ArchiveDashboard: React.FC<Props> = ({
 
   const docCategories = ['全部', '学术论文', '专利技术', '荣誉奖项', '资质证件'];
 
+  // TODO: replace with API call to fetch user's documents/achievements
   const mockDocuments = [
     { title: '深度学习图像识别技术综述报告', size: '2.3 MB', category: '学术论文', date: '2025.03.01', status: '已发表' },
     { title: '基于AI的分布式计算架构设计方案', size: '1.8 MB', category: '学术论文', date: '2024.11.15', status: '实审中' },

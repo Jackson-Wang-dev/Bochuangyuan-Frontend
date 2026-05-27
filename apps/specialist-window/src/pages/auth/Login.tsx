@@ -13,6 +13,7 @@ export default function LoginPage() {
 
   const sendCode = () => {
     if (!phone || countdown > 0) return
+    // TODO: call SMS send API before starting countdown
     setCodeSent(true)
     setCountdown(60)
     const timer = setInterval(() => {

@@ -1,3 +1,4 @@
+// TODO: replace with API call to fetch report templates from DB (GET /assessment/report-templates)
 // AI 温度报告模板
 // 占位符说明：
 //   {q1_note}  第1题选择的语义化描述

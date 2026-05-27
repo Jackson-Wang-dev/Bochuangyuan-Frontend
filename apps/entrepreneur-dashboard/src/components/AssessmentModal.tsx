@@ -28,7 +28,7 @@ interface Props {
 
 export const AssessmentModal: React.FC<Props> = ({ isOpen, onClose }) => {
   const { user } = useUserStore();
-  const nickname = user?.nickname;
+  const nickname = user?.username;
   const { step, currentIdx, progress, scores, startTest, next, reset } = useAssessmentStore();
 
   const topDim = scores ? getTopDim(scores) : null;

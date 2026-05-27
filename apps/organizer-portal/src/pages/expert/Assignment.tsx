@@ -3,6 +3,7 @@ import { useExpertStore } from '@/store/expertStore'
 import { Users, Shuffle } from 'lucide-react'
 import type { Expert } from '@bochuangyuan/types'
 
+// TODO: replace with API call to fetch competition enrollments for assignment (endpoint TBD)
 const MOCK_PROJECTS = [
   { enrollId: 'enr-1', projectName: 'AI 分布式算力平台' },
   { enrollId: 'enr-2', projectName: '碳中和智能监测系统' },
@@ -40,6 +41,7 @@ export default function AssignmentPage() {
   }
 
   const saveAll = () => {
+    // TODO: call batch assignment API to persist assignments on server
     Object.entries(selected).forEach(([expertId, enrollIds]) => {
       assignEnrollments(expertId, enrollIds)
     })

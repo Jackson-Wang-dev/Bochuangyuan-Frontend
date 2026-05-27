@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+// TODO: fetch questions and personas from API instead of importing static mock files
 import { questions } from '../mock/questions'
 import { personas } from '../mock/personas'
 import type { AiReport, Answer, AssessmentSession, DimensionScore, Persona } from '../types'
