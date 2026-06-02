@@ -1,26 +1,22 @@
 import { apiClient } from '@bochuangyuan/api'
-import type { OrganizerCompetition, ScoreDimensionConfig } from '@bochuangyuan/types'
+import type { Competition } from '@bochuangyuan/types'
 
-export async function fetchCompetitions(): Promise<OrganizerCompetition[]> {
-  const { data } = await apiClient.get<OrganizerCompetition[]>('/organizer/competitions')
+export async function fetchCompetitions(): Promise<Competition[]> {
+  const { data } = await apiClient.get<Competition[]>('/organizer/competitions')
   return data
 }
 
-export async function fetchCompetition(id: string): Promise<OrganizerCompetition> {
-  const { data } = await apiClient.get<OrganizerCompetition>(`/organizer/competitions/${id}`)
+export async function fetchCompetition(id: string): Promise<Competition> {
+  const { data } = await apiClient.get<Competition>(`/organizer/competitions/${id}`)
   return data
 }
 
-export async function createCompetition(payload: Partial<OrganizerCompetition>): Promise<OrganizerCompetition> {
-  const { data } = await apiClient.post<OrganizerCompetition>('/organizer/competitions', payload)
+export async function createCompetition(payload: Partial<Competition>): Promise<Competition> {
+  const { data } = await apiClient.post<Competition>('/organizer/competitions', payload)
   return data
 }
 
-export async function updateCompetition(id: string, payload: Partial<OrganizerCompetition>): Promise<OrganizerCompetition> {
-  const { data } = await apiClient.put<OrganizerCompetition>(`/organizer/competitions/${id}`, payload)
+export async function updateCompetition(id: string, payload: Partial<Competition>): Promise<Competition> {
+  const { data } = await apiClient.put<Competition>(`/organizer/competitions/${id}`, payload)
   return data
-}
-
-export async function saveDimensions(id: string, dims: ScoreDimensionConfig[]): Promise<void> {
-  await apiClient.put(`/organizer/competitions/${id}/dimensions`, { dimensions: dims })
 }

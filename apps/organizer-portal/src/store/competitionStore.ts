@@ -1,41 +1,33 @@
 import { create } from 'zustand'
-import type { OrganizerCompetition, EnrollmentRecord, ScoreDimensionConfig } from '@bochuangyuan/types'
+import type { Competition, Registration } from '@bochuangyuan/types'
 
 interface CompetitionState {
-  competitions: OrganizerCompetition[]
-  currentCompetition: OrganizerCompetition | null
-  enrollments: EnrollmentRecord[]
+  competitions: Competition[]
+  currentCompetition: Competition | null
+  registrations: Registration[]
 
-  setCompetitions: (list: OrganizerCompetition[]) => void
-  setCurrentCompetition: (c: OrganizerCompetition | null) => void
-  setEnrollments: (list: EnrollmentRecord[]) => void
-  upsertCompetition: (c: OrganizerCompetition) => void
-  updateDimensions: (competitionId: string, dims: ScoreDimensionConfig[]) => void
+  setCompetitions: (list: Competition[]) => void
+  setCurrentCompetition: (c: Competition | null) => void
+  setRegistrations: (list: Registration[]) => void
+  upsertCompetition: (c: Competition) => void
 }
 
 export const useCompetitionStore = create<CompetitionState>()((set) => ({
   competitions: [],
   currentCompetition: null,
-  enrollments: [],
+  registrations: [],
 
   setCompetitions: (competitions) => set({ competitions }),
   setCurrentCompetition: (currentCompetition) => set({ currentCompetition }),
-  setEnrollments: (enrollments) => set({ enrollments }),
+  setRegistrations: (registrations) => set({ registrations }),
 
   upsertCompetition: (c) =>
     set((s) => {
       const exists = s.competitions.find((x) => x.competitionId === c.competitionId)
       return {
         competitions: exists
-          ? s.competitions.map((x) => x.competitionId === c.competitionId ? c : x)
+          ? s.competitions.map((x) => (x.competitionId === c.competitionId ? c : x))
           : [c, ...s.competitions],
       }
     }),
-
-  updateDimensions: (competitionId, dims) =>
-    set((s) => ({
-      competitions: s.competitions.map((c) =>
-        c.competitionId === competitionId ? { ...c, scoreDimensions: dims } : c,
-      ),
-    })),
 }))

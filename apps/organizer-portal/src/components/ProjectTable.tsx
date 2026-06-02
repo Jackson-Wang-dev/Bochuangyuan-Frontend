@@ -1,10 +1,16 @@
-import { StatusBadge } from '@bochuangyuan/ui'
-import type { EnrollmentRecord } from '@bochuangyuan/types'
 import { cn } from '@/lib/utils'
 
+export interface ProjectRow {
+  enrollId: string
+  projectName: string
+  entrepreneurName: string
+  status: string
+  finalScore?: number
+}
+
 interface ProjectTableProps {
-  enrollments: EnrollmentRecord[]
-  onSelect?: (e: EnrollmentRecord) => void
+  enrollments: ProjectRow[]
+  onSelect?: (e: ProjectRow) => void
 }
 
 export function ProjectTable({ enrollments, onSelect }: ProjectTableProps) {
@@ -29,7 +35,7 @@ export function ProjectTable({ enrollments, onSelect }: ProjectTableProps) {
               <td className="px-4 py-3 font-medium text-slate-800">{e.projectName}</td>
               <td className="px-4 py-3 text-slate-500">{e.entrepreneurName}</td>
               <td className="px-4 py-3">
-                <StatusBadge status={e.status} />
+                <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-600">{e.status}</span>
               </td>
               <td className="px-4 py-3 text-right font-bold text-slate-700">
                 {e.finalScore != null ? e.finalScore.toFixed(1) : <span className="text-slate-300">—</span>}

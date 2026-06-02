@@ -1,25 +1,23 @@
+// ProgressBar is no longer used as a standalone component — the top bar in
+// Quiz.tsx now owns the segmented progress row. This stub is kept so that any
+// existing imports don't break during the migration.
+
 interface ProgressBarProps {
   current: number
   total: number
 }
 
 export default function ProgressBar({ current, total }: ProgressBarProps) {
-  const percent = Math.round((current / total) * 100)
-
   return (
-    <div className="w-full px-4 py-3 bg-white/10 backdrop-blur-sm">
-      <div className="flex items-center justify-between mb-1.5">
-        <span className="text-sm text-white/80 font-medium">创业旅程</span>
-        <span className="text-sm text-white font-bold font-display">
-          {current} / {total}
-        </span>
-      </div>
-      <div className="h-1.5 bg-white/20 rounded-full overflow-hidden">
-        <div
-          className="h-full bg-white rounded-full transition-all duration-500 ease-out"
-          style={{ width: `${percent}%` }}
+    <div className="flex items-center gap-1 px-5 py-3">
+      {Array.from({ length: total }).map((_, i) => (
+        <span
+          key={i}
+          className={`h-1 flex-1 rounded-full transition-colors duration-300 ${
+            i < current ? 'bg-[#0045c4]' : 'bg-slate-200'
+          }`}
         />
-      </div>
+      ))}
     </div>
   )
 }

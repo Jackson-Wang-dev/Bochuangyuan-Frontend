@@ -1,3 +1,5 @@
+import { MessageCircle } from 'lucide-react'
+
 interface StorySceneProps {
   sequence: number
   sceneTitle: string
@@ -7,28 +9,26 @@ interface StorySceneProps {
 
 export default function StoryScene({
   sequence,
-  sceneTitle,
   sceneDescription,
   questionText,
 }: StorySceneProps) {
   return (
-    <div className="px-4 pt-4 pb-2">
-      {/* Scene label */}
-      <div className="flex items-center gap-2 mb-3">
-        <span className="px-2.5 py-1 bg-[#5b5fed]/10 text-[#5b5fed] text-xs font-bold rounded-full">
-          第 {String(sequence).padStart(2, '0')} 关
-        </span>
-        <span className="text-gray-500 text-sm">·</span>
-        <span className="text-gray-600 text-sm font-medium">{sceneTitle}</span>
-      </div>
+    <div className="px-5 pt-6">
+      {/* Mono eyebrow */}
+      <p className="font-mono text-[10px] text-[#0045c4] tracking-[0.18em] uppercase mb-2">
+        Scene · {String(sequence).padStart(2, '0')}
+      </p>
 
-      {/* Story scene card */}
-      <div className="bg-gradient-to-br from-gray-50 to-blue-50/30 rounded-2xl p-5 mb-4 border border-gray-100">
-        <p className="text-gray-700 text-base leading-[1.85] tracking-wide">{sceneDescription}</p>
-      </div>
+      {/* Serif scene heading */}
+      <h2 className="font-serif text-[22px] font-semibold text-slate-900 leading-[1.35] tracking-tight">
+        {sceneDescription}
+      </h2>
 
-      {/* Question */}
-      <p className="text-gray-900 text-lg font-semibold leading-relaxed px-1">{questionText}</p>
+      {/* Question pill */}
+      <div className="mt-5 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#0045c4]/8 text-[#0045c4] text-[12px] font-medium">
+        <MessageCircle className="w-3.5 h-3.5" />
+        {questionText}
+      </div>
     </div>
   )
 }

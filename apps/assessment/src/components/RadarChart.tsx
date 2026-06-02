@@ -62,24 +62,23 @@ export default function RadarChart({ scores, animate = true, size = 280 }: Radar
     <div style={{ width: size, height: size }} className="mx-auto">
       <ResponsiveContainer width="100%" height="100%">
         <RechartsRadarChart data={data} cx="50%" cy="50%" outerRadius="75%">
-          <PolarGrid stroke="#e5e7eb" strokeWidth={1} />
+          <PolarGrid stroke="#e2e8f0" strokeWidth={1} />
           <PolarAngleAxis
             dataKey="subject"
             tick={{
               fontSize: 12,
-              fill: '#4b5563',
-              fontFamily:
-                '-apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif',
+              fill: '#64748b',
+              fontFamily: '"Inter", "Noto Sans SC", system-ui, sans-serif',
             }}
           />
           <Radar
             name="score"
             dataKey="score"
-            stroke="#5b5fed"
-            fill="#5b5fed"
-            fillOpacity={0.25}
+            stroke="#0045c4"
+            fill="#0045c4"
+            fillOpacity={0.12}
             strokeWidth={2}
-            dot={{ fill: '#5b5fed', r: 3, strokeWidth: 0 }}
+            dot={{ fill: '#0045c4', r: 3, strokeWidth: 0 }}
             isAnimationActive={false}
           />
         </RechartsRadarChart>

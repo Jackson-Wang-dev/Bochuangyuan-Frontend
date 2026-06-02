@@ -1,0 +1,588 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<title>博创网 · Home Hero — UI Optimization</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          'brand-blue': '#0045c4',
+          'brand-light-blue': '#eff6ff',
+          'brand-cyan': '#0ea5e9',
+          'brand-ink': '#0a1733',
+          'brand-paper': '#f6f7fb',
+        },
+        fontFamily: {
+          sans: ['Inter', 'PingFang SC', 'Noto Sans SC', 'system-ui', 'sans-serif'],
+          mono: ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
+        },
+        borderRadius: {
+          'token-sm': '8px',
+          'token-md': '12px',
+          'token-lg': '16px',
+          'token-xl': '20px',
+          'token-2xl': '24px',
+        },
+      },
+    },
+  };
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;700;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+<style>
+  body { font-family: 'Inter', 'Noto Sans SC', system-ui, sans-serif; }
+  /* small "B" mark for current logo box */
+  .b-mark-italic { font-style: italic; font-weight: 900; letter-spacing: -0.04em; }
+
+  /* Hide scrollbar in scroll rows */
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+  /* Subtle dotted bg for the AFTER header — adds visual texture without slop */
+  .ink-grid {
+    background-color: #0a1733;
+    background-image:
+      radial-gradient(rgba(255,255,255,0.06) 1px, transparent 1px),
+      radial-gradient(rgba(255,255,255,0.04) 1px, transparent 1px);
+    background-size: 24px 24px, 48px 48px;
+    background-position: 0 0, 12px 12px;
+  }
+
+  /* Annotation pins */
+  .pin {
+    position: absolute;
+    width: 22px;
+    height: 22px;
+    border-radius: 999px;
+    background: #fff;
+    color: #0045c4;
+    font-weight: 800;
+    font-size: 11px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1.5px solid #0045c4;
+    box-shadow: 0 4px 12px rgba(0,69,196,0.18);
+    z-index: 50;
+  }
+</style>
+</head>
+<body class="bg-[#eef0f5] text-slate-900 antialiased">
+
+<!-- Page header -->
+<header class="max-w-[1500px] mx-auto px-10 pt-10 pb-6">
+  <div class="flex items-end justify-between flex-wrap gap-4">
+    <div>
+      <p class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.25em]">Visual optimization · Home page hero</p>
+      <h1 class="mt-2 text-3xl font-bold tracking-tight text-slate-900">博创网 — Dashboard hero, before &amp; after</h1>
+      <p class="mt-2 text-sm text-slate-500 max-w-[64ch]">UI-only proposal for the entrepreneur dashboard's home view (header, AI achievement banner, and competition slider). No data, routing, or component-API changes — purely visual: type scale, radius scale, color tokens, copy, and density. Annotations call out each change.</p>
+    </div>
+    <div class="flex items-center gap-2 text-xs font-medium text-slate-500">
+      <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white border border-slate-200">
+        <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>BEFORE — current code
+      </span>
+      <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white border border-slate-200">
+        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>AFTER — proposed
+      </span>
+    </div>
+  </div>
+</header>
+
+<!-- ============================================================== -->
+<!-- BEFORE -->
+<!-- ============================================================== -->
+<section class="max-w-[1500px] mx-auto px-10 mb-12">
+  <div class="flex items-center gap-3 mb-3">
+    <span class="w-2 h-2 rounded-full bg-rose-500"></span>
+    <h2 class="text-sm font-bold uppercase tracking-[0.2em] text-rose-600">Before</h2>
+    <span class="text-xs text-slate-400">Recreated faithfully from <span class="font-mono">apps/entrepreneur-dashboard/src/components/ArchiveDashboard.tsx</span></span>
+  </div>
+
+  <div class="bg-[#f8fafc] rounded-3xl border border-slate-200 overflow-hidden shadow-sm relative">
+
+    <!-- BEFORE: Header -->
+    <div class="bg-[#0045c4]">
+      <nav class="flex items-center justify-between p-4 px-8 text-white w-full">
+        <div class="flex items-center gap-3">
+          <div class="w-14 h-14 bg-white rounded-2xl flex items-center justify-center p-2 shadow-xl border border-white/20">
+            <div class="w-full h-full bg-blue-600 rounded-xl flex items-center justify-center">
+              <span class="text-white b-mark-italic text-xl">B</span>
+            </div>
+          </div>
+          <span class="font-bold text-2xl tracking-tighter text-white">博创网</span>
+        </div>
+        <div class="flex items-center gap-6">
+          <div class="relative">
+            <i data-lucide="bell" class="w-5 h-5"></i>
+            <span class="absolute -top-1 -right-1 w-2 h-2 bg-rose-500 rounded-full border-2 border-[#0045c4]"></span>
+          </div>
+          <div class="flex items-center gap-3 pl-6 border-l border-white/10">
+            <img src="https://images.unsplash.com/photo-1599566150163-29194dcaad36?q=80&w=100&h=100&auto=format&fit=crop" class="w-8 h-8 rounded-xl border-2 border-white/20" alt="">
+            <i data-lucide="chevron-down" class="w-4 h-4 text-white/40"></i>
+          </div>
+        </div>
+      </nav>
+    </div>
+
+    <div class="px-8 pb-16 max-w-[1400px] mx-auto w-full grid grid-cols-12 gap-8 mt-12">
+      <!-- Sidebar -->
+      <aside class="col-span-2 space-y-1 text-sm">
+        <button class="w-full flex items-center gap-3 px-4 py-3 rounded-lg font-bold bg-[#0045c4]/10 text-[#0045c4] border-r-4 border-[#0045c4]"><i data-lucide="layout-dashboard" class="w-5 h-5"></i>首页</button>
+        <button class="w-full flex items-center gap-3 px-4 py-3 rounded-lg font-bold text-slate-500"><i data-lucide="user" class="w-5 h-5"></i>个人档案</button>
+        <button class="w-full flex items-center gap-3 px-4 py-3 rounded-lg font-bold text-slate-500"><i data-lucide="briefcase" class="w-5 h-5"></i>项目管理</button>
+        <button class="w-full flex items-center gap-3 px-4 py-3 rounded-lg font-bold text-slate-500"><i data-lucide="file-text" class="w-5 h-5"></i>在线编辑BP</button>
+        <button class="w-full flex items-center gap-3 px-4 py-3 rounded-lg font-bold text-slate-500"><i data-lucide="building-2" class="w-5 h-5"></i>企业档案</button>
+        <button class="w-full flex items-center gap-3 px-4 py-3 rounded-lg font-bold text-slate-500"><i data-lucide="folder-open" class="w-5 h-5"></i>材料库</button>
+        <button class="w-full flex items-center gap-3 px-4 py-3 rounded-lg font-bold text-slate-500"><i data-lucide="trophy" class="w-5 h-5"></i>大赛入口</button>
+        <button class="w-full flex items-center gap-3 px-4 py-3 rounded-lg font-bold text-slate-500"><i data-lucide="sparkles" class="w-5 h-5"></i>AI 评估</button>
+      </aside>
+
+      <main class="col-span-10 bg-white rounded-2xl shadow-sm border border-slate-100 p-8 min-h-[600px]">
+        <!-- BEFORE: AI banner -->
+        <div class="space-y-4 relative">
+          <span class="pin" style="left: -34px; top: 6px;">A</span>
+          <div class="px-2">
+            <h2 class="text-xl font-bold tracking-tight text-slate-800">成就任务中心</h2>
+            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mt-1">个人成就成长里程碑</p>
+          </div>
+
+          <div class="relative group cursor-pointer">
+            <!-- gradient glow halo -->
+            <div class="absolute -inset-0.5 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 rounded-[2rem] opacity-20 blur-2xl"></div>
+            <div class="relative bg-white border border-blue-100 rounded-[2rem] p-6 flex items-center justify-between shadow-xl shadow-blue-500/5">
+              <div class="flex items-center gap-6">
+                <div class="relative">
+                  <div class="w-16 h-16 bg-slate-900 rounded-3xl flex items-center justify-center text-white shadow-2xl relative overflow-hidden">
+                    <i data-lucide="sparkles" class="w-8 h-8 relative z-10"></i>
+                    <div class="absolute inset-x-0 bottom-0 h-1/2 bg-blue-600/20 blur-xl"></div>
+                  </div>
+                  <div class="absolute -top-1 -right-1 w-6 h-6 bg-blue-500 rounded-full border-4 border-white flex items-center justify-center shadow-lg">
+                    <i data-lucide="zap" class="w-2.5 h-2.5 text-white"></i>
+                  </div>
+                </div>
+                <div class="space-y-2">
+                  <span class="pin" style="left: 100px; top: -10px;">B</span>
+                  <span class="text-[10px] font-black bg-blue-600 text-white px-2 py-0.5 rounded-md uppercase tracking-widest">AI 智慧推荐</span>
+                  <p class="text-lg font-bold text-slate-800">
+                    发现新路径！正在通往
+                    <span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600 ml-1">「人才大佬」</span>
+                    称号
+                  </p>
+                  <div class="flex items-center gap-4 relative">
+                    <span class="pin" style="left: -28px; top: 0px;">C</span>
+                    <div class="flex-1 h-1.5 w-48 bg-slate-100 rounded-full overflow-hidden">
+                      <div class="h-full bg-gradient-to-r from-blue-500 to-purple-500" style="width:80%"></div>
+                    </div>
+                    <p class="text-xs font-bold text-slate-500 italic">
+                      进度 8/10 <span class="text-blue-600 ml-2">再上传 2 份材料即可解锁证书 已达成 ✓</span>
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <button class="flex items-center gap-3 bg-slate-900 text-white px-8 py-4 rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl">
+                去同步档案 <i data-lucide="arrow-right" class="w-4 h-4"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- BEFORE: Competition slider -->
+        <div class="space-y-3 mt-10 relative">
+          <span class="pin" style="left: -34px; top: 0px;">D</span>
+          <div class="px-2 flex items-center justify-between">
+            <div class="space-y-1">
+              <h2 class="text-xl font-bold tracking-tight text-slate-800">热门征集 · 竞赛前沿</h2>
+              <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mt-1">对接海量资源与高额奖金</p>
+            </div>
+          </div>
+
+          <div class="relative rounded-[24px] overflow-hidden bg-white border border-slate-100 shadow-xl h-[220px] w-full">
+            <div class="absolute top-0 right-0 w-64 h-64 bg-blue-400/5 rounded-full blur-[80px] pointer-events-none"></div>
+
+            <div class="absolute inset-0 flex w-full h-full">
+              <div class="flex-1 p-8 flex flex-col justify-between relative z-10 bg-gradient-to-r from-blue-50/90 to-white/95">
+                <div class="space-y-3">
+                  <div class="flex items-center gap-3">
+                    <span class="text-[9px] font-black bg-blue-600 text-white px-2 py-0.5 rounded-md uppercase tracking-wider shadow-sm">推荐</span>
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">报名进行中</span>
+                  </div>
+                  <h3 class="text-lg lg:text-xl font-bold text-slate-900 tracking-tight leading-tight">全国创新创业大赛 2024</h3>
+                  <p class="text-slate-500 text-[11px] font-medium max-w-xl leading-relaxed pl-3 border-l-2 border-slate-100 line-clamp-2">
+                    汇聚全国顶尖创新力量，为创业者提供展示舞台、资本对接与顶尖导师资源。总奖金池高达 ¥ 500万。
+                  </p>
+                </div>
+                <div class="flex flex-wrap items-center gap-6 text-[11px] text-slate-500 font-bold border-t border-slate-50 pt-3 relative">
+                  <span class="pin" style="left: -30px; top: 6px;">E</span>
+                  <div class="flex items-center gap-1.5"><i data-lucide="calendar" class="w-3.5 h-3.5 text-slate-400"></i><span>截止 2024.03.15</span></div>
+                  <div class="flex items-center gap-1.5"><i data-lucide="map-pin" class="w-3.5 h-3.5 text-slate-400"></i><span>北京 · 中国</span></div>
+                </div>
+              </div>
+
+              <div class="w-[35%] relative overflow-hidden shrink-0 bg-slate-950">
+                <div class="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-transparent to-transparent z-10"></div>
+                <img src="https://images.unsplash.com/photo-1540317580384-e5d43616b9aa?auto=format&fit=crop&q=80&w=1400" class="absolute inset-0 w-full h-full object-cover opacity-80" alt="">
+
+                <div class="absolute top-4 right-4 z-20">
+                  <div class="bg-slate-900/95 backdrop-blur-md px-3.5 py-1.5 rounded-xl border border-white/10 text-white flex items-center gap-2 shadow-xl">
+                    <i data-lucide="trophy" class="w-3.5 h-3.5 text-amber-400"></i>
+                    <span class="text-xs font-black tabular-nums">¥ 500万</span>
+                  </div>
+                </div>
+
+                <div class="absolute bottom-4 right-4 z-20">
+                  <button class="bg-[#0045c4] text-white text-[11px] font-black px-5 py-2.5 rounded-xl shadow-lg flex items-center gap-1.5">
+                    立即报名 <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="absolute bottom-3 left-6 flex gap-1.5 z-30">
+              <div class="h-1 w-4 rounded-full bg-[#0045c4] shadow-sm"></div>
+              <div class="h-1 w-2 rounded-full bg-slate-300/60"></div>
+              <div class="h-1 w-2 rounded-full bg-slate-300/60"></div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================== -->
+<!-- AFTER -->
+<!-- ============================================================== -->
+<section class="max-w-[1500px] mx-auto px-10 mb-12">
+  <div class="flex items-center gap-3 mb-3">
+    <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+    <h2 class="text-sm font-bold uppercase tracking-[0.2em] text-emerald-600">After</h2>
+    <span class="text-xs text-slate-400">Proposed optimization — UI/visual only</span>
+  </div>
+
+  <div class="bg-brand-paper rounded-3xl border border-slate-200 overflow-hidden shadow-sm relative">
+
+    <!-- AFTER: Header — deeper ink with subtle texture, refined logo lockup -->
+    <div class="ink-grid relative">
+      <div class="absolute inset-0 bg-gradient-to-r from-[#0045c4]/30 via-transparent to-transparent pointer-events-none"></div>
+      <nav class="flex items-center justify-between py-4 px-8 text-white w-full relative">
+        <!-- pin A' -->
+        <span class="pin" style="left: -10px; top: 50%; transform: translateY(-50%);">1</span>
+        <div class="flex items-center gap-6">
+          <!-- Refined logo lockup -->
+          <div class="flex items-center gap-3">
+            <svg width="36" height="36" viewBox="0 0 40 40" fill="none" aria-hidden="true">
+              <rect x="0" y="0" width="40" height="40" rx="10" fill="#0045c4"/>
+              <path d="M11 9 H23 C27.4 9 30 11.6 30 15.4 C30 17.8 28.8 19.8 26.9 20.6 C29.4 21.4 31 23.6 31 26.4 C31 30.4 28 33 23.4 33 H11 V9 Z M16 13 V19 H22 C23.8 19 25 17.8 25 16 C25 14.2 23.8 13 22 13 H16 Z M16 23 V29 H23 C25 29 26 27.6 26 26 C26 24.2 24.9 23 23 23 H16 Z" fill="white"/>
+            </svg>
+            <div class="leading-tight">
+              <div class="text-base font-bold tracking-tight">博创网</div>
+              <div class="text-[10px] font-medium tracking-[0.2em] text-white/50 uppercase">Bochuang · Doctor venture</div>
+            </div>
+          </div>
+          <!-- Inline primary nav for top-level surfaces -->
+          <div class="hidden md:flex items-center gap-1 ml-4 text-xs">
+            <button class="px-3 py-1.5 rounded-full bg-white/10 text-white font-medium">创业者工作台</button>
+            <button class="px-3 py-1.5 rounded-full text-white/60 font-medium hover:text-white">官网</button>
+            <button class="px-3 py-1.5 rounded-full text-white/60 font-medium hover:text-white">大赛入口</button>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <!-- Global search -->
+          <div class="hidden md:flex items-center gap-2 bg-white/8 border border-white/10 rounded-full px-3.5 py-2 text-xs text-white/70 w-72">
+            <i data-lucide="search" class="w-3.5 h-3.5"></i>
+            <span>搜索项目、材料、大赛…</span>
+            <span class="ml-auto font-mono text-[10px] px-1.5 py-0.5 rounded-md bg-white/10 border border-white/5">⌘ K</span>
+          </div>
+          <button class="w-9 h-9 rounded-full hover:bg-white/10 flex items-center justify-center relative">
+            <i data-lucide="bell" class="w-4 h-4"></i>
+            <span class="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-rose-400 rounded-full ring-2 ring-[#0a1733]"></span>
+          </button>
+          <button class="w-9 h-9 rounded-full hover:bg-white/10 flex items-center justify-center">
+            <i data-lucide="help-circle" class="w-4 h-4"></i>
+          </button>
+          <div class="flex items-center gap-2 pl-3 ml-1 border-l border-white/10">
+            <img src="https://images.unsplash.com/photo-1599566150163-29194dcaad36?q=80&w=100&h=100&auto=format&fit=crop" class="w-7 h-7 rounded-full" alt="">
+            <div class="text-xs leading-tight">
+              <div class="font-medium">陈博士</div>
+              <div class="text-white/50 text-[10px]">高级合伙人</div>
+            </div>
+            <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-white/40 ml-0.5"></i>
+          </div>
+        </div>
+      </nav>
+    </div>
+
+    <div class="px-8 pb-16 max-w-[1400px] mx-auto w-full grid grid-cols-12 gap-8 mt-8">
+      <!-- Sidebar — tighter spacing, icon weight unified -->
+      <aside class="col-span-2 space-y-0.5 text-sm">
+        <button class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-medium bg-[#0045c4]/8 text-[#0045c4]"><i data-lucide="layout-dashboard" class="w-4 h-4"></i>首页</button>
+        <button class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-medium text-slate-600 hover:bg-white"><i data-lucide="user" class="w-4 h-4"></i>个人档案</button>
+        <button class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-medium text-slate-600 hover:bg-white"><i data-lucide="briefcase" class="w-4 h-4"></i>项目管理</button>
+        <button class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-medium text-slate-600 hover:bg-white"><i data-lucide="file-text" class="w-4 h-4"></i>在线编辑BP</button>
+        <button class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-medium text-slate-600 hover:bg-white"><i data-lucide="building-2" class="w-4 h-4"></i>企业档案</button>
+        <button class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-medium text-slate-600 hover:bg-white"><i data-lucide="folder-open" class="w-4 h-4"></i>材料库</button>
+        <button class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-medium text-slate-600 hover:bg-white"><i data-lucide="trophy" class="w-4 h-4"></i>大赛入口</button>
+        <button class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-medium text-slate-600 hover:bg-white"><i data-lucide="sparkles" class="w-4 h-4"></i>AI 评估</button>
+
+      </aside>
+
+      <main class="col-span-10 space-y-8">
+        <!-- AFTER: AI achievement banner — solid card, no halo, accurate copy -->
+        <div class="space-y-5 relative">
+          <span class="pin" style="left: -34px; top: 6px;">2</span>
+          <div class="flex items-end justify-between">
+            <div>
+              <h2 class="text-xl font-semibold tracking-tight text-slate-900">成就任务中心</h2>
+              <p class="text-xs text-slate-500 mt-1">距离下一个里程碑还有 2 步 · 系统会持续陪你完成</p>
+            </div>
+            <button class="text-xs font-medium text-slate-500 hover:text-slate-900 flex items-center gap-1">
+              全部里程碑 <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+            </button>
+          </div>
+
+          <div class="relative bg-white border border-slate-200 rounded-2xl p-6 flex items-center justify-between gap-6 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_24px_-12px_rgba(15,23,42,0.08)]">
+            <!-- left rail accent -->
+            <div class="absolute left-0 top-6 bottom-6 w-1 bg-[#0045c4] rounded-r-full"></div>
+
+            <div class="flex items-center gap-5 flex-1 min-w-0">
+              <div class="relative shrink-0">
+                <div class="w-14 h-14 bg-[#0a1733] rounded-2xl flex items-center justify-center text-white">
+                  <i data-lucide="sparkles" class="w-6 h-6"></i>
+                </div>
+                <span class="absolute -bottom-1 -right-1 inline-flex items-center gap-0.5 text-[10px] font-semibold bg-[#0045c4] text-white px-1.5 py-0.5 rounded-md shadow-sm">
+                  <i data-lucide="zap" class="w-2.5 h-2.5"></i>AI
+                </span>
+              </div>
+
+              <div class="min-w-0 flex-1">
+                <div class="flex items-center gap-2 text-[11px] font-medium text-slate-500">
+                  <span class="px-1.5 py-0.5 rounded-md bg-[#0045c4]/8 text-[#0045c4] font-semibold">AI 智慧推荐</span>
+                  <span>·</span>
+                  <span>个性化路径</span>
+                </div>
+                <h3 class="mt-1.5 text-lg font-semibold text-slate-900 truncate">
+                  距离「人才大佬」称号还差 2 份材料
+                </h3>
+                <div class="mt-3 flex items-center gap-3 relative">
+                  <span class="pin" style="left: -28px; top: 0px;">3</span>
+                  <div class="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden max-w-[280px]">
+                    <div class="h-full bg-[#0045c4] rounded-full" style="width:80%"></div>
+                  </div>
+                  <div class="text-xs text-slate-500">
+                    <span class="font-mono tabular-nums font-semibold text-slate-900">8</span>
+                    <span class="text-slate-400">/</span>
+                    <span class="font-mono tabular-nums">10</span>
+                    <span class="ml-1">已完成</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-2 shrink-0">
+              <button class="text-sm font-medium text-slate-600 hover:text-slate-900 px-4 py-2.5 rounded-xl hover:bg-slate-50">稍后再说</button>
+              <button class="flex items-center gap-2 bg-[#0045c4] hover:bg-[#003ba8] text-white px-5 py-2.5 rounded-xl text-sm font-medium shadow-sm">
+                同步档案 <i data-lucide="arrow-right" class="w-4 h-4"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- AFTER: Competition slider — quieter, more legible -->
+        <div class="space-y-4 relative">
+          <span class="pin" style="left: -34px; top: 0px;">4</span>
+          <div class="flex items-end justify-between">
+            <div>
+              <h2 class="text-xl font-semibold tracking-tight text-slate-900">热门征集 · 竞赛前沿</h2>
+              <p class="text-xs text-slate-500 mt-1">本月共 12 场 · 报名中 3 场</p>
+            </div>
+            <div class="flex items-center gap-1">
+              <button class="w-8 h-8 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-50">
+                <i data-lucide="chevron-left" class="w-4 h-4"></i>
+              </button>
+              <button class="w-8 h-8 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-50">
+                <i data-lucide="chevron-right" class="w-4 h-4"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="relative rounded-2xl overflow-hidden bg-white border border-slate-200 h-[240px] w-full">
+            <div class="absolute inset-0 flex w-full h-full">
+              <div class="flex-1 p-7 flex flex-col justify-between relative z-10">
+                <div class="space-y-3">
+                  <div class="flex items-center gap-2 text-xs">
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 font-medium">
+                      <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>报名进行中
+                    </span>
+                  </div>
+                  <h3 class="text-2xl font-semibold text-slate-900 tracking-tight leading-tight">全国创新创业大赛 2024</h3>
+                  <p class="text-sm text-slate-500 max-w-xl leading-relaxed line-clamp-2">
+                    汇聚全国顶尖创新力量，为创业者提供展示舞台、资本对接与顶尖导师资源。
+                  </p>
+                </div>
+
+                <div class="flex items-center gap-5 text-sm text-slate-500 relative">
+                  <span class="pin" style="left: -30px; top: 6px;">5</span>
+                  <div class="flex items-center gap-1.5">
+                    <i data-lucide="calendar" class="w-3.5 h-3.5"></i>
+                    <span>截止 <span class="font-mono text-slate-700">2024.03.15</span> · 还剩 <span class="text-rose-600 font-medium">14 天</span></span>
+                  </div>
+                  <div class="flex items-center gap-1.5">
+                    <i data-lucide="map-pin" class="w-3.5 h-3.5"></i>
+                    <span>北京</span>
+                  </div>
+                  <div class="flex items-center gap-1.5">
+                    <i data-lucide="trophy" class="w-3.5 h-3.5"></i>
+                    <span>奖金池 <span class="font-mono text-slate-700">¥500万</span></span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="w-[40%] relative overflow-hidden shrink-0">
+                <img src="https://images.unsplash.com/photo-1540317580384-e5d43616b9aa?auto=format&fit=crop&q=80&w=1400" class="absolute inset-0 w-full h-full object-cover" alt="">
+                <div class="absolute inset-0 bg-gradient-to-r from-white via-white/0 to-transparent"></div>
+                <div class="absolute inset-0 bg-gradient-to-t from-slate-950/60 to-transparent"></div>
+
+                <div class="absolute bottom-4 right-4 z-20 flex items-center gap-2">
+                  <button class="bg-white/90 hover:bg-white backdrop-blur text-slate-900 text-sm font-medium px-4 py-2.5 rounded-xl">查看详情</button>
+                  <button class="bg-[#0045c4] hover:bg-[#003ba8] text-white text-sm font-medium px-4 py-2.5 rounded-xl flex items-center gap-1.5">
+                    立即报名 <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="absolute bottom-3 left-7 flex items-center gap-3 z-30">
+              <div class="flex gap-1.5">
+                <div class="h-1 w-6 rounded-full bg-[#0045c4]"></div>
+                <div class="h-1 w-2 rounded-full bg-slate-200"></div>
+                <div class="h-1 w-2 rounded-full bg-slate-200"></div>
+              </div>
+              <span class="text-[11px] font-mono text-slate-400 tabular-nums">01 / 03</span>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================== -->
+<!-- Change log -->
+<!-- ============================================================== -->
+<section class="max-w-[1500px] mx-auto px-10 pb-20">
+  <div class="bg-white rounded-3xl border border-slate-200 p-8 shadow-sm">
+    <div class="flex items-center gap-3 mb-6">
+      <span class="w-2 h-2 rounded-full bg-slate-900"></span>
+      <h2 class="text-sm font-bold uppercase tracking-[0.2em] text-slate-900">Change log</h2>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-x-12 gap-y-8 text-sm">
+
+      <div class="space-y-2">
+        <div class="flex items-center gap-2">
+          <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-[#0045c4] text-white text-xs font-bold">1</span>
+          <h3 class="font-semibold text-slate-900">Header — from flat slab to ink lockup</h3>
+        </div>
+        <ul class="ml-8 list-disc list-outside text-slate-600 space-y-1.5 leading-relaxed">
+          <li>Background changes from saturated <code class="font-mono text-xs bg-slate-100 px-1 rounded">#0045c4</code> slab to a deeper ink (<code class="font-mono text-xs bg-slate-100 px-1 rounded">#0a1733</code>) with a subtle dotted texture and a soft brand-blue glow on the left — feels premium, less retina-burn.</li>
+          <li>Logo: replace the italic "B" letter mark with a real geometric B mark, plus a bilingual lockup that introduces the brand promise ("Doctor venture"). Sets up the "陪伴" tone immediately.</li>
+          <li>Adds inline product-level switcher (创业者工作台 / 官网 / 大赛入口) — useful because the codebase has 5 apps, but there's currently no way to switch between them from the header.</li>
+          <li>Adds global ⌘K search affordance — there's a Search icon used inside Archive but no global entry point today.</li>
+          <li>User block grows from avatar + chevron to avatar + name + role — uses the existing 高级合伙人 timeline data the system already has.</li>
+        </ul>
+      </div>
+
+      <div class="space-y-2">
+        <div class="flex items-center gap-2">
+          <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-[#0045c4] text-white text-xs font-bold">2</span>
+          <h3 class="font-semibold text-slate-900">AI achievement banner — kill the slop, keep the AI</h3>
+        </div>
+        <ul class="ml-8 list-disc list-outside text-slate-600 space-y-1.5 leading-relaxed">
+          <li>Removes the blue→indigo→purple blurred halo behind the card (classic AI-slop trope).</li>
+          <li>Removes the gradient text on 「人才大佬」(<code class="font-mono text-xs bg-slate-100 px-1 rounded">bg-clip-text bg-gradient-to-r</code>) — uses a normal weighted heading instead.</li>
+          <li>Replaces the heavy <code class="font-mono text-xs bg-slate-100 px-1 rounded">rounded-[2rem]</code> + <code class="font-mono text-xs bg-slate-100 px-1 rounded">shadow-xl shadow-blue-500/5</code> with a tokenized <code class="font-mono text-xs bg-slate-100 px-1 rounded">rounded-2xl</code> + double layered shadow (1px hairline + soft cast). Calmer, more credible.</li>
+          <li>Adds a brand-blue left rail to subtly signal "this is an AI suggestion" without painting the whole card.</li>
+          <li>Tones the AI pill: from <code class="font-mono text-xs bg-slate-100 px-1 rounded">bg-blue-600 text-white</code> shouty caps to a soft <code class="font-mono text-xs bg-slate-100 px-1 rounded">brand-blue/8</code> chip in normal case.</li>
+          <li>Two CTAs (primary + secondary) instead of one black CTA — gives users a way to dismiss politely, which matches the "accompany not nag" brand voice.</li>
+        </ul>
+      </div>
+
+      <div class="space-y-2">
+        <div class="flex items-center gap-2">
+          <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-[#0045c4] text-white text-xs font-bold">3</span>
+          <h3 class="font-semibold text-slate-900">Progress strip — copy is now truthful</h3>
+        </div>
+        <ul class="ml-8 list-disc list-outside text-slate-600 space-y-1.5 leading-relaxed">
+          <li>Current copy says <em>"进度 8/10 再上传 2 份材料即可解锁证书 已达成 ✓"</em> — the ✓ contradicts "再上传 2 份". Replaced with a clean fraction "8 / 10 已完成" + the heading itself ("还差 2 份材料") carrying the action.</li>
+          <li>Progress fill is solid brand-blue instead of <code class="font-mono text-xs bg-slate-100 px-1 rounded">from-blue-500 to-purple-500</code>.</li>
+          <li>The fraction uses <code class="font-mono text-xs bg-slate-100 px-1 rounded">font-mono tabular-nums</code> so the digits don't jitter as progress updates.</li>
+        </ul>
+      </div>
+
+      <div class="space-y-2">
+        <div class="flex items-center gap-2">
+          <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-[#0045c4] text-white text-xs font-bold">4</span>
+          <h3 class="font-semibold text-slate-900">Competition slider — legibility &amp; AI rationale</h3>
+        </div>
+        <ul class="ml-8 list-disc list-outside text-slate-600 space-y-1.5 leading-relaxed">
+          <li>Section subtitle changes from the all-caps decorative "对接海量资源与高额奖金" to plain functional info: <em>"本月共 12 场 · 报名中 3 场"</em>. Useful at a glance without over-narrating the AI's role.</li>
+          <li>Slider chrome: removes the inner blue blob blur, raises card height 220 → 240px to give the headline more air, swaps the radius from <code class="font-mono text-xs bg-slate-100 px-1 rounded">rounded-[24px]</code> to the tokenized <code class="font-mono text-xs bg-slate-100 px-1 rounded">rounded-2xl</code> (same visual, single source).</li>
+          <li>The "推荐" caps pill is replaced by a soft "报名进行中" status chip — half the visual noise.</li>
+          <li>Headline scales up: <code class="font-mono text-xs bg-slate-100 px-1 rounded">text-xl</code> → <code class="font-mono text-xs bg-slate-100 px-1 rounded">text-2xl</code>; body copy scales up <code class="font-mono text-xs bg-slate-100 px-1 rounded">text-[11px]</code> → <code class="font-mono text-xs bg-slate-100 px-1 rounded">text-sm</code>. The current size is below WCAG comfortable reading.</li>
+          <li>Replaces left-border-pipe decoration on the body copy with normal text — that pipe is one of the listed slop tropes.</li>
+        </ul>
+      </div>
+
+      <div class="space-y-2">
+        <div class="flex items-center gap-2">
+          <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-[#0045c4] text-white text-xs font-bold">5</span>
+          <h3 class="font-semibold text-slate-900">Slider footer — urgency + bigger CTAs</h3>
+        </div>
+        <ul class="ml-8 list-disc list-outside text-slate-600 space-y-1.5 leading-relaxed">
+          <li>Reward badge moves out of the image overlay and into the bottom info row, joining 截止 + 地点. Consistent metadata pattern.</li>
+          <li>Adds a "还剩 14 天" deadline countdown in rose — the current design only shows the absolute date, which is harder to act on.</li>
+          <li>CTA pairs: "查看详情" (secondary) + "立即报名" (primary). Single tiny corner button → proper two-button group on image side. Bigger hit targets.</li>
+          <li>Image gets a left-to-right white fade so the headline always has a clean reading band, regardless of which photo loads.</li>
+          <li>Carousel indicators: pairs the dots with a "01 / 03" mono counter — clearer than three dots on their own.</li>
+        </ul>
+      </div>
+
+      <div class="space-y-2 lg:col-span-2 pt-4 border-t border-slate-100">
+        <h3 class="font-semibold text-slate-900">Cross-cutting token decisions</h3>
+        <div class="grid md:grid-cols-3 gap-6 mt-3">
+          <div>
+            <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400 mb-2">Radius scale</p>
+            <p class="text-slate-600 leading-relaxed">Lock to 5 tokens: 8 / 12 / 16 / 20 / 24px (sm → 2xl) + pill. Today's home uses 9 distinct radii — most of them invisible to the eye but expensive to maintain.</p>
+          </div>
+          <div>
+            <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400 mb-2">Type weight semantics</p>
+            <p class="text-slate-600 leading-relaxed">Stop using <code class="font-mono text-xs bg-slate-100 px-1 rounded">font-black</code> for non-display elements. Reserve 800 for hero headlines; use 600 (semibold) for section heads, 500 (medium) for emphasis, 400 (regular) for body. Today many tiny labels are <code class="font-mono text-xs bg-slate-100 px-1 rounded">font-black</code> — undermines weight as a signal.</p>
+          </div>
+          <div>
+            <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400 mb-2">Minimum body size</p>
+            <p class="text-slate-600 leading-relaxed">Body text floor 13px (<code class="font-mono text-xs bg-slate-100 px-1 rounded">text-[13px]</code>). Reserve 10–11px only for footnotes / mono codes / decorative all-caps eyebrows. Most of the current dashboard breaks this.</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="mt-8 pt-6 border-t border-slate-100 flex items-center justify-between">
+      <p class="text-xs text-slate-500">Want me to apply these changes directly to <span class="font-mono">ArchiveDashboard.tsx</span> / <span class="font-mono">DashboardLayout.tsx</span>? Or iterate on this proposal first?</p>
+      <div class="flex items-center gap-2 text-xs text-slate-400">
+        <span class="font-mono">v1 · home hero</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script src="https://unpkg.com/lucide@latest"></script>
+<script>lucide.createIcons();</script>
+</body>
+</html>

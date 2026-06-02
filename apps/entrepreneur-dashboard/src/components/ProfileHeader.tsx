@@ -93,7 +93,7 @@ export const ProfileHeader: React.FC<Props> = ({ onRegister }) => {
     };
   }, [isHovered, paginate]);
 
-  const currentComp = COMPETITIONS[currentIndex];
+  const currentComp = COMPETITIONS[currentIndex]!;
 
   return (
     <div className="space-y-6 mb-8">

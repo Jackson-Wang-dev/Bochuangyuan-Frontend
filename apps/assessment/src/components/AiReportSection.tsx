@@ -69,7 +69,7 @@ export default function AiReportSection({
       style={{ cursor: !isDone ? 'pointer' : 'default' }}
     >
       {/* Left accent bar */}
-      <div className="absolute left-0 top-6 bottom-6 w-1 bg-gradient-to-b from-[#5b5fed] to-[#8b5cf6] rounded-r-full" />
+      <div className="absolute left-0 top-6 bottom-6 w-1 bg-[#0045c4] rounded-r-full" />
 
       <div className="pl-3">
         {paragraphs.map((para, i) => (

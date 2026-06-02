@@ -1,8 +1,19 @@
-import type { EnrollmentRecord } from '@bochuangyuan/types'
 import { cn } from '@/lib/utils'
 
+interface ScoreEntry {
+  expertName: string
+  finalScore: number
+}
+
+export interface ScoreRow {
+  enrollId: string
+  projectName: string
+  finalScore?: number
+  scores: ScoreEntry[]
+}
+
 interface ScoreMatrixProps {
-  enrollments: EnrollmentRecord[]
+  enrollments: ScoreRow[]
 }
 
 export function ScoreMatrix({ enrollments }: ScoreMatrixProps) {

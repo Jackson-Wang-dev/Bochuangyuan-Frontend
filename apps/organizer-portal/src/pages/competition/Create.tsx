@@ -1,69 +1,86 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, ArrowRight, Check } from 'lucide-react'
-import { DimensionEditor } from '@/components/DimensionEditor'
+import { ArrowLeft, ArrowRight, Check, Plus, X } from 'lucide-react'
 import { FormBuilder, useFormBuilderStore } from '@bochuangyuan/ui'
-import type { ScoreDimensionConfig, FormSchema } from '@bochuangyuan/types'
+import { competitionApi } from '@bochuangyuan/api'
+import type { SignUpType, Track } from '@bochuangyuan/types'
 import { nanoid } from 'nanoid'
 
-const DEFAULT_DIMS: ScoreDimensionConfig[] = [
-  { key: 'technology', label: '技术成熟度', weight: 30, description: '' },
-  { key: 'market',     label: '市场前景',   weight: 30, description: '' },
-  { key: 'team',       label: '团队能力',   weight: 20, description: '' },
-  { key: 'innovation', label: '创新性',     weight: 20, description: '' },
-]
+type Step = 1 | 2 | 3 | 4
+const STEPS = ['基本信息', '报名表单', '评审字段', '预览确认']
 
-const DEFAULT_FORM: FormSchema = {
-  id: nanoid(),
-  name: '报名表单',
-  fields: [
-    { id: nanoid(), type: 'text',     label: '项目名称',   required: true },
-    { id: nanoid(), type: 'text',     label: '联系人',     required: true },
-    { id: nanoid(), type: 'text',     label: '联系电话',   required: true, placeholder: '请输入手机号' },
-    {
-      id: nanoid(),
-      type: 'select',
-      label: '参赛组别',
-      required: true,
-      options: [
-        { label: '初创组', value: 'startup' },
-        { label: '成长组', value: 'growth' },
-        { label: '成熟组', value: 'mature' },
-      ],
-    },
-    { id: nanoid(), type: 'textarea', label: '项目简介', required: true, description: '请简要描述项目核心亮点（300字以内）' },
-  ],
-  createdAt: new Date().toISOString(),
-  updatedAt: new Date().toISOString(),
+interface BasicForm {
+  name: string
+  summary: string
+  location: string
+  signUpStart: string
+  signUpEnd: string
+  matchStart: string
+  matchEnd: string
+  signUpType: SignUpType
+  greenChannelEnabled: boolean
+  tracks: Track[]
 }
 
-type Step = 1 | 2 | 3 | 4
-
-const STEPS = ['基本信息', '报名表单', '评分维度', '预览确认']
+const EMPTY_BASIC: BasicForm = {
+  name: '',
+  summary: '',
+  location: '',
+  signUpStart: '',
+  signUpEnd: '',
+  matchStart: '',
+  matchEnd: '',
+  signUpType: 'Both',
+  greenChannelEnabled: false,
+  tracks: [],
+}
 
 export default function CreateCompetitionPage() {
   const navigate = useNavigate()
   const [step, setStep] = useState<Step>(1)
-  const [form, setForm] = useState({
-    name: '',
-    description: '',
-    enrollDeadline: '',
-    reviewDeadline: '',
-  })
-  const [dimensions, setDimensions] = useState<ScoreDimensionConfig[]>(DEFAULT_DIMS)
-
-  const totalWeight = dimensions.reduce((s, d) => s + d.weight, 0)
-  const canNext2 = form.name && form.enrollDeadline && form.reviewDeadline
-  const canNext4 = totalWeight === 100 && dimensions.every((d) => d.label)
+  const [basic, setBasic] = useState<BasicForm>(EMPTY_BASIC)
+  const [trackInput, setTrackInput] = useState('')
+  const [submitting, setSubmitting] = useState(false)
 
   const formFields = useFormBuilderStore((s) => s.fields)
 
-  const handlePublish = () => {
-    // TODO: call createCompetition API
-    navigate('/competitions')
+  const canNext1 = !!basic.name && !!basic.signUpStart && !!basic.signUpEnd
+
+  const addTrack = () => {
+    const name = trackInput.trim()
+    if (!name) return
+    setBasic((b) => ({ ...b, tracks: [...b.tracks, { id: nanoid(), name }] }))
+    setTrackInput('')
   }
 
-  const isFullWidth = step === 2
+  const removeTrack = (id: string) => {
+    setBasic((b) => ({ ...b, tracks: b.tracks.filter((t) => t.id !== id) }))
+  }
+
+  const handlePublish = async () => {
+    setSubmitting(true)
+    try {
+      await competitionApi.create({
+        name: basic.name,
+        hostId: 'current-org-id',
+        summary: basic.summary || undefined,
+        location: basic.location || undefined,
+        signUpStart: basic.signUpStart,
+        signUpEnd: basic.signUpEnd,
+        matchStart: basic.matchStart || undefined,
+        matchEnd: basic.matchEnd || undefined,
+        signUpType: basic.signUpType,
+        greenChannelEnabled: basic.greenChannelEnabled,
+        tracks: basic.tracks.length > 0 ? basic.tracks : undefined,
+        status: 'Draft',
+      })
+      navigate('/competitions')
+    } catch {
+      setSubmitting(false)
+    }
+  }
+
+  const isFullWidth = step === 2 || step === 3
 
   return (
     <div className={isFullWidth ? 'h-full flex flex-col' : 'max-w-2xl space-y-6'}>
@@ -76,7 +93,7 @@ export default function CreateCompetitionPage() {
       </div>
 
       {/* Steps */}
-      <div className="flex items-center gap-0 flex-shrink-0">
+      <div className="flex items-center gap-0 flex-shrink-0 flex-wrap">
         {STEPS.map((label, i) => {
           const n = (i + 1) as Step
           const active = step === n
@@ -97,104 +114,152 @@ export default function CreateCompetitionPage() {
 
       {/* Step 1 — 基本信息 */}
       {step === 1 && (
-        <div className="glass-card p-6 space-y-4">
-          <h2 className="text-sm font-bold text-slate-700">基本信息</h2>
+        <div className="glass-card p-6 space-y-5">
           <div className="space-y-1.5">
             <label className="text-sm font-semibold text-slate-600">赛事名称 *</label>
             <input
-              value={form.name}
-              onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+              value={basic.name}
+              onChange={(e) => setBasic((b) => ({ ...b, name: e.target.value }))}
               placeholder="请输入赛事名称"
               className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/20"
             />
           </div>
+
           <div className="space-y-1.5">
             <label className="text-sm font-semibold text-slate-600">赛事简介</label>
             <textarea
-              value={form.description}
-              onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+              value={basic.summary}
+              onChange={(e) => setBasic((b) => ({ ...b, summary: e.target.value }))}
               placeholder="请输入赛事简介"
               rows={3}
               className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/20 resize-none"
             />
           </div>
+
+          <div className="space-y-1.5">
+            <label className="text-sm font-semibold text-slate-600">举办地点</label>
+            <input
+              value={basic.location}
+              onChange={(e) => setBasic((b) => ({ ...b, location: e.target.value }))}
+              placeholder="线上 / 城市"
+              className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/20"
+            />
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <label className="text-sm font-semibold text-slate-600">报名截止 *</label>
-              <input
-                type="date"
-                value={form.enrollDeadline}
-                onChange={(e) => setForm((f) => ({ ...f, enrollDeadline: e.target.value }))}
-                className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/20"
-              />
+              <label className="text-sm font-semibold text-slate-600">报名开始 *</label>
+              <input type="date" value={basic.signUpStart} onChange={(e) => setBasic((b) => ({ ...b, signUpStart: e.target.value }))}
+                className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/20" />
             </div>
             <div className="space-y-1.5">
-              <label className="text-sm font-semibold text-slate-600">评审截止 *</label>
-              <input
-                type="date"
-                value={form.reviewDeadline}
-                onChange={(e) => setForm((f) => ({ ...f, reviewDeadline: e.target.value }))}
-                className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/20"
-              />
+              <label className="text-sm font-semibold text-slate-600">报名截止 *</label>
+              <input type="date" value={basic.signUpEnd} onChange={(e) => setBasic((b) => ({ ...b, signUpEnd: e.target.value }))}
+                className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/20" />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-semibold text-slate-600">比赛开始</label>
+              <input type="date" value={basic.matchStart} onChange={(e) => setBasic((b) => ({ ...b, matchStart: e.target.value }))}
+                className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/20" />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-semibold text-slate-600">比赛结束</label>
+              <input type="date" value={basic.matchEnd} onChange={(e) => setBasic((b) => ({ ...b, matchEnd: e.target.value }))}
+                className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/20" />
             </div>
           </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-semibold text-slate-600">参赛类型</label>
+            <div className="flex gap-2">
+              {(['Individual', 'Team', 'Both'] as SignUpType[]).map((type) => (
+                <button key={type} onClick={() => setBasic((b) => ({ ...b, signUpType: type }))}
+                  className={`px-4 py-2 rounded-xl text-sm font-bold border transition-all ${
+                    basic.signUpType === type ? 'bg-brand-blue text-white border-brand-blue' : 'border-slate-200 text-slate-500 hover:border-brand-blue/50'
+                  }`}>
+                  {type === 'Individual' ? '仅个人' : type === 'Team' ? '仅团队' : '个人/团队均可'}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Tracks */}
+          <div className="space-y-2">
+            <label className="text-sm font-semibold text-slate-600">赛道</label>
+            <div className="flex gap-2">
+              <input value={trackInput} onChange={(e) => setTrackInput(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && addTrack()}
+                placeholder="输入赛道名称后回车添加"
+                className="flex-1 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/20" />
+              <button onClick={addTrack} className="px-4 py-2 bg-brand-blue text-white rounded-xl text-sm font-bold hover:bg-brand-blue/90">
+                <Plus className="w-4 h-4" />
+              </button>
+            </div>
+            {basic.tracks.length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-1">
+                {basic.tracks.map((t) => (
+                  <span key={t.id} className="flex items-center gap-1.5 px-3 py-1 bg-brand-blue/10 text-brand-blue text-xs font-bold rounded-full">
+                    {t.name}
+                    <button onClick={() => removeTrack(t.id)}><X className="w-3 h-3" /></button>
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Green channel */}
+          <label className="flex items-center gap-3 cursor-pointer">
+            <input type="checkbox" checked={basic.greenChannelEnabled}
+              onChange={(e) => setBasic((b) => ({ ...b, greenChannelEnabled: e.target.checked }))}
+              className="w-4 h-4 rounded border-slate-300 text-brand-blue accent-brand-blue" />
+            <span className="text-sm font-semibold text-slate-600">开启绿色通道（优秀项目可直接晋级半决赛）</span>
+          </label>
+
           <div className="flex justify-end">
-            <button
-              onClick={() => setStep(2)}
-              disabled={!canNext2}
-              className="flex items-center gap-2 px-6 py-2.5 bg-brand-blue text-white rounded-xl text-sm font-bold disabled:opacity-40 hover:bg-brand-blue/90 transition-colors"
-            >
+            <button onClick={() => setStep(2)} disabled={!canNext1}
+              className="flex items-center gap-2 px-6 py-2.5 bg-brand-blue text-white rounded-xl text-sm font-bold disabled:opacity-40 hover:bg-brand-blue/90 transition-colors">
               下一步 <ArrowRight className="w-4 h-4" />
             </button>
           </div>
         </div>
       )}
 
-      {/* Step 2 — 报名表单（全宽高） */}
+      {/* Step 2 — 报名表单（FormBuilder, 全宽） */}
       {step === 2 && (
         <div className="flex-1 flex flex-col gap-3 min-h-0">
           <div className="flex items-center justify-between flex-shrink-0">
-            <p className="text-sm text-slate-500">配置参赛者提交报名时需要填写的信息</p>
+            <p className="text-sm text-slate-500">配置参赛者报名时需要填写的字段</p>
             <div className="flex gap-2">
-              <button
-                onClick={() => setStep(1)}
-                className="flex items-center gap-2 px-4 py-2 border border-slate-200 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50 transition-colors"
-              >
+              <button onClick={() => setStep(1)} className="flex items-center gap-2 px-4 py-2 border border-slate-200 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50 transition-colors">
                 <ArrowLeft className="w-4 h-4" /> 上一步
               </button>
-              <button
-                onClick={() => setStep(3)}
-                className="flex items-center gap-2 px-6 py-2 bg-brand-blue text-white rounded-xl text-sm font-bold hover:bg-brand-blue/90 transition-colors"
-              >
+              <button onClick={() => setStep(3)} className="flex items-center gap-2 px-6 py-2 bg-brand-blue text-white rounded-xl text-sm font-bold hover:bg-brand-blue/90 transition-colors">
                 下一步 <ArrowRight className="w-4 h-4" />
               </button>
             </div>
           </div>
           <div className="flex-1 glass-card overflow-hidden min-h-0">
-            <FormBuilder
-              mode="form"
-              initialSchema={DEFAULT_FORM}
-            />
+            <FormBuilder mode="form" />
           </div>
         </div>
       )}
 
-      {/* Step 3 — 评分维度 */}
+      {/* Step 3 — 评审字段（FormBuilder review mode） */}
       {step === 3 && (
-        <div className="glass-card p-6 space-y-4">
-          <h2 className="text-sm font-bold text-slate-700">评分维度配置</h2>
-          <DimensionEditor dimensions={dimensions} onChange={setDimensions} />
-          <div className="flex justify-between">
-            <button onClick={() => setStep(2)} className="flex items-center gap-2 px-4 py-2.5 border border-slate-200 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50 transition-colors">
-              <ArrowLeft className="w-4 h-4" /> 上一步
-            </button>
-            <button
-              onClick={() => setStep(4)}
-              disabled={!canNext4}
-              className="flex items-center gap-2 px-6 py-2.5 bg-brand-blue text-white rounded-xl text-sm font-bold disabled:opacity-40 hover:bg-brand-blue/90 transition-colors"
-            >
-              下一步 <ArrowRight className="w-4 h-4" />
-            </button>
+        <div className="flex-1 flex flex-col gap-3 min-h-0">
+          <div className="flex items-center justify-between flex-shrink-0">
+            <p className="text-sm text-slate-500">配置评委打分的维度与分值</p>
+            <div className="flex gap-2">
+              <button onClick={() => setStep(2)} className="flex items-center gap-2 px-4 py-2 border border-slate-200 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50 transition-colors">
+                <ArrowLeft className="w-4 h-4" /> 上一步
+              </button>
+              <button onClick={() => setStep(4)} className="flex items-center gap-2 px-6 py-2 bg-brand-blue text-white rounded-xl text-sm font-bold hover:bg-brand-blue/90 transition-colors">
+                下一步 <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+          <div className="flex-1 glass-card overflow-hidden min-h-0">
+            <FormBuilder mode="review" />
           </div>
         </div>
       )}
@@ -205,47 +270,30 @@ export default function CreateCompetitionPage() {
           <div className="glass-card p-6 space-y-3">
             <h2 className="text-sm font-bold text-slate-700">预览确认</h2>
             <div className="space-y-2 text-sm">
-              <div className="flex justify-between py-2 border-b border-slate-50">
-                <span className="text-slate-500">赛事名称</span>
-                <span className="font-semibold text-slate-800">{form.name}</span>
-              </div>
-              <div className="flex justify-between py-2 border-b border-slate-50">
-                <span className="text-slate-500">报名截止</span>
-                <span className="font-semibold text-slate-800">{form.enrollDeadline}</span>
-              </div>
-              <div className="flex justify-between py-2 border-b border-slate-50">
-                <span className="text-slate-500">评审截止</span>
-                <span className="font-semibold text-slate-800">{form.reviewDeadline}</span>
-              </div>
-              <div className="py-2 border-b border-slate-50">
-                <span className="text-slate-500 block mb-2">报名表单</span>
-                <p className="text-xs text-slate-600">
-                  {formFields.length} 个字段：
-                  {formFields.map((f) => f.label).join('、')}
-                </p>
-              </div>
-              <div className="py-2">
-                <span className="text-slate-500 block mb-2">评分维度</span>
-                <div className="space-y-1">
-                  {dimensions.map((d) => (
-                    <div key={d.key} className="flex justify-between text-xs">
-                      <span className="text-slate-600">{d.label}</span>
-                      <span className="text-slate-400">权重 {d.weight}%</span>
-                    </div>
-                  ))}
+              {[
+                ['赛事名称', basic.name],
+                ['参赛类型', basic.signUpType === 'Individual' ? '仅个人' : basic.signUpType === 'Team' ? '仅团队' : '个人/团队均可'],
+                ['报名时间', `${basic.signUpStart} ～ ${basic.signUpEnd}`],
+                ['比赛时间', basic.matchStart ? `${basic.matchStart} ～ ${basic.matchEnd}` : '待定'],
+                ['举办地点', basic.location || '待定'],
+                ['绿色通道', basic.greenChannelEnabled ? '已开启' : '未开启'],
+                ['赛道数量', `${basic.tracks.length} 个`],
+                ['报名表单', `${formFields.length} 个字段`],
+              ].map(([k, v]) => (
+                <div key={k} className="flex justify-between py-2 border-b border-slate-50">
+                  <span className="text-slate-500">{k}</span>
+                  <span className="font-semibold text-slate-800">{v}</span>
                 </div>
-              </div>
+              ))}
             </div>
           </div>
           <div className="flex justify-between">
             <button onClick={() => setStep(3)} className="flex items-center gap-2 px-4 py-2.5 border border-slate-200 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50 transition-colors">
               <ArrowLeft className="w-4 h-4" /> 上一步
             </button>
-            <button
-              onClick={handlePublish}
-              className="flex items-center gap-2 px-6 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-bold hover:bg-emerald-700 transition-colors"
-            >
-              <Check className="w-4 h-4" /> 发布赛事
+            <button onClick={handlePublish} disabled={submitting}
+              className="flex items-center gap-2 px-6 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-bold hover:bg-emerald-700 disabled:opacity-50 transition-colors">
+              <Check className="w-4 h-4" /> {submitting ? '保存中…' : '保存草稿'}
             </button>
           </div>
         </div>

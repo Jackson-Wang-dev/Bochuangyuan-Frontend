@@ -1,6 +1,6 @@
 import { ChevronRight, Clock, EyeOff, Eye } from 'lucide-react'
-import { StatusBadge } from '@bochuangyuan/ui'
 import type { ReviewTask } from '@bochuangyuan/types'
+import { cn } from '@/lib/utils'
 
 interface ProjectCardProps {
   task: ReviewTask
@@ -10,16 +10,28 @@ interface ProjectCardProps {
 function StageBadge({ stage }: { stage: ReviewTask['reviewStage'] }) {
   if (stage === 'initial') {
     return (
-      <span className="inline-flex items-center gap-1 text-xs font-semibold bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">
+      <span className="inline-flex items-center gap-1 text-[11px] font-semibold bg-slate-bg text-slate px-[7px] py-px rounded-[6px]">
         <EyeOff className="w-3 h-3" />
         盲审
       </span>
     )
   }
   return (
-    <span className="inline-flex items-center gap-1 text-xs font-semibold bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
+    <span className="inline-flex items-center gap-1 text-[11px] font-semibold bg-brand-50 text-brand-d px-[7px] py-px rounded-[6px]">
       <Eye className="w-3 h-3" />
       复审
+    </span>
+  )
+}
+
+function StatusTag({ status }: { status: ReviewTask['status'] }) {
+  const isDone = status === 'done'
+  return (
+    <span className={cn(
+      'text-[11px] font-semibold px-[7px] py-px rounded-[6px]',
+      isDone ? 'bg-green-bg text-green' : 'bg-amber-bg text-amber',
+    )}>
+      {isDone ? '已评审' : '待评审'}
     </span>
   )
 }
@@ -28,22 +40,22 @@ export function ProjectCard({ task, onClick }: ProjectCardProps) {
   return (
     <button
       onClick={onClick}
-      className="glass-card p-4 w-full text-left flex items-center gap-4 hover:shadow-md hover:border-brand-blue/20 transition-all active:scale-[0.99]"
+      className="glass-card p-4 w-full text-left flex items-center gap-4 hover:border-brand-100 transition-all"
     >
-      <div className="w-10 h-10 rounded-xl bg-brand-blue/10 flex items-center justify-center flex-shrink-0">
-        <span className="text-brand-blue font-black text-sm">{task.projectName.slice(0, 1)}</span>
+      <div className="w-10 h-10 rounded-[9px] bg-brand-50 grid place-items-center flex-none">
+        <span className="text-brand-d font-bold text-[15px]">{task.projectName.slice(0, 1)}</span>
       </div>
 
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="font-semibold text-slate-800 truncate">{task.projectName}</span>
+          <span className="text-[14px] font-semibold text-ink truncate">{task.projectName}</span>
           <StageBadge stage={task.reviewStage} />
-          <StatusBadge status={task.status} />
+          <StatusTag status={task.status} />
         </div>
-        <div className="flex items-center gap-3 mt-1 text-xs text-slate-400">
-          <span>{task.projectDomain}</span>
-          <span>·</span>
-          <span>{task.competitionName}</span>
+        <div className="flex items-center gap-3 mt-1 text-[12px] text-faint">
+          {task.projectDomain && <span>{task.projectDomain}</span>}
+          {task.projectDomain && task.competitionName && <span>·</span>}
+          {task.competitionName && <span>{task.competitionName}</span>}
           {task.deadline && (
             <>
               <span>·</span>
@@ -53,7 +65,7 @@ export function ProjectCard({ task, onClick }: ProjectCardProps) {
         </div>
       </div>
 
-      <ChevronRight className="w-4 h-4 text-slate-300 flex-shrink-0" />
+      <ChevronRight className="w-4 h-4 text-faint flex-none" />
     </button>
   )
 }

@@ -1,15 +1,16 @@
-import { useState } from 'react'
+import { Check } from 'lucide-react'
 import type { Option } from '../types'
 
 interface OptionCardProps {
   option: Option
+  index: number
   selected: boolean
   disabled: boolean
   onSelect: (optionId: number) => void
 }
 
-export default function OptionCard({ option, selected, disabled, onSelect }: OptionCardProps) {
-  const [pressing, setPressing] = useState(false)
+export default function OptionCard({ option, index, selected, disabled, onSelect }: OptionCardProps) {
+  const letter = String.fromCharCode(65 + index) // A, B, C, D
 
   const handleClick = () => {
     if (disabled) return
@@ -19,42 +20,39 @@ export default function OptionCard({ option, selected, disabled, onSelect }: Opt
   return (
     <button
       onClick={handleClick}
-      onMouseDown={() => setPressing(true)}
-      onMouseUp={() => setPressing(false)}
-      onMouseLeave={() => setPressing(false)}
       disabled={disabled}
       className={[
-        'w-full text-left p-4 rounded-2xl border-2 transition-all duration-200',
-        'focus:outline-none focus:ring-2 focus:ring-[#5b5fed]/40',
+        'w-full text-left bg-white rounded-2xl p-4 border flex items-start gap-3 transition-colors',
+        'focus:outline-none focus:ring-2 focus:ring-[#0045c4]/30',
         selected
-          ? 'border-[#5b5fed] bg-[#5b5fed]/10 shadow-lg scale-[1.01]'
+          ? 'border-2 border-[#0045c4] shadow-sm shadow-[#0045c4]/10'
           : disabled
-            ? 'border-gray-100 bg-gray-50 opacity-60 cursor-not-allowed'
-            : pressing
-              ? 'border-[#5b5fed]/60 bg-[#5b5fed]/5 scale-[0.99] shadow-md'
-              : 'border-gray-200 bg-white hover:border-[#5b5fed]/50 hover:shadow-md hover:scale-[1.005] cursor-pointer',
+            ? 'border-slate-200 opacity-60 cursor-not-allowed'
+            : 'border-slate-200 hover:border-[#0045c4]/40 cursor-pointer',
       ].join(' ')}
     >
-      <div className="flex items-start gap-3">
-        <span
-          className={[
-            'flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold transition-colors duration-200',
-            selected
-              ? 'bg-[#5b5fed] text-white'
-              : 'bg-gray-100 text-gray-500',
-          ].join(' ')}
-        >
-          {option.label}
-        </span>
-        <p
-          className={[
-            'text-base leading-relaxed pt-0.5 transition-colors duration-200',
-            selected ? 'text-[#5b5fed] font-medium' : 'text-gray-700',
-          ].join(' ')}
-        >
-          {option.content}
-        </p>
-      </div>
+      {/* A/B/C/D mono badge */}
+      <span
+        className={[
+          'w-6 h-6 rounded-full text-xs font-mono font-semibold flex items-center justify-center shrink-0 mt-0.5 transition-colors',
+          selected ? 'bg-[#0045c4] text-white' : 'bg-slate-100 text-slate-500',
+        ].join(' ')}
+      >
+        {letter}
+      </span>
+
+      {/* Option text */}
+      <p
+        className={[
+          'text-[13.5px] leading-relaxed flex-1',
+          selected ? 'text-slate-900 font-medium' : 'text-slate-800',
+        ].join(' ')}
+      >
+        {option.content}
+      </p>
+
+      {/* Check icon when selected */}
+      {selected && <Check className="w-4 h-4 text-[#0045c4] mt-0.5 shrink-0" />}
     </button>
   )
 }

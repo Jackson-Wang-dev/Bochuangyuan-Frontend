@@ -1,19 +1,59 @@
 @import "tailwindcss";
 
 @theme {
-  --color-brand-blue: #0045c4;
-  --color-brand-light-blue: #eff6ff;
-  --color-brand-cyan: #0ea5e9;
+  /* brand */
+  --color-brand:     #2B50E2;
+  --color-brand-d:   #1E3FC4;
+  --color-brand-50:  #EEF1FE;
+  --color-brand-100: #DEE4FD;
 
-  --font-sans: "Inter", "system-ui", sans-serif;
+  /* surface hierarchy */
+  --color-page:  #F5F6F9;
+  --color-panel: #FFFFFF;
+  --color-line:  #E8EAEF;
+  --color-line2: #DCDFE6;
+
+  /* ink */
+  --color-ink:   #171A21;
+  --color-muted: #5B6472;
+  --color-faint: #8A93A3;
+
+  /* semantic status */
+  --color-amber:    #B7791F;
+  --color-amber-bg: #FDF5E6;
+  --color-green:    #15803D;
+  --color-green-bg: #E9F6EE;
+  --color-slate:    #475569;
+  --color-slate-bg: #EEF1F5;
+
+  /* radius */
+  --radius-card: 10px;
+
+  /* fonts */
+  --font-sans: "Hanken Grotesk", "Noto Sans SC", ui-sans-serif, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
 }
 
 @layer base {
+  html {
+    font-feature-settings: "tnum" 1, "cv11" 1;
+  }
   body {
-    @apply bg-[#f8fafc] text-slate-900 antialiased;
+    @apply bg-page text-ink antialiased;
+    font-family: var(--font-sans);
+    font-size: 14px;
+    line-height: 1.5;
   }
 }
 
 @utility glass-card {
-  @apply bg-white rounded-2xl shadow-sm border border-slate-200;
+  background: var(--color-panel);
+  border-radius: var(--radius-card);
+  border: 1px solid var(--color-line);
+  box-shadow: 0 1px 3px rgb(16 24 40 / .07), 0 1px 2px rgb(16 24 40 / .04);
+}
+
+@utility mono {
+  font-family: var(--font-mono);
+  font-feature-settings: "tnum" 1;
 }

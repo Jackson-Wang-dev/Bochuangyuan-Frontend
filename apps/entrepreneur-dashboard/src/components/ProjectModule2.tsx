@@ -289,8 +289,8 @@ export const ProjectModule2: React.FC = () => {
 
   const handleUploadFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0 || !selectedFolder) return;
-    const file = e.target.files[0];
-    
+    const file = e.target.files[0]!;
+
     const fileTypeMap: Record<string, 'pdf' | 'docx' | 'pptx' | 'xlsx' | 'images'> = {
       'application/pdf': 'pdf',
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx',

@@ -1,9 +1,8 @@
 import { useState } from 'react'
 import { useExpertStore } from '@/store/expertStore'
 import { Users, Shuffle } from 'lucide-react'
-import type { Expert } from '@bochuangyuan/types'
+import type { Judge } from '@bochuangyuan/types'
 
-// TODO: replace with API call to fetch competition enrollments for assignment (endpoint TBD)
 const MOCK_PROJECTS = [
   { enrollId: 'enr-1', projectName: 'AI 分布式算力平台' },
   { enrollId: 'enr-2', projectName: '碳中和智能监测系统' },
@@ -15,41 +14,40 @@ const MOCK_PROJECTS = [
 export default function AssignmentPage() {
   const { selectedExperts, assignments, assignEnrollments } = useExpertStore()
   const [selected, setSelected] = useState<Record<string, string[]>>(() =>
-    Object.fromEntries(assignments.map((a) => [a.expertId, a.enrollIds])),
+    Object.fromEntries(assignments.map((a) => [a.judgeId, a.projectIds])),
   )
 
   const autoAssign = () => {
     if (selectedExperts.length === 0) return
     const perExpert = Math.ceil(MOCK_PROJECTS.length / selectedExperts.length)
     const newAssign: Record<string, string[]> = {}
-    selectedExperts.forEach((expert, i) => {
-      newAssign[expert.expertId] = MOCK_PROJECTS
+    selectedExperts.forEach((judge, i) => {
+      newAssign[judge.judgeId] = MOCK_PROJECTS
         .slice(i * perExpert, (i + 1) * perExpert)
         .map((p) => p.enrollId)
     })
     setSelected(newAssign)
   }
 
-  const toggleAssign = (expertId: string, enrollId: string) => {
+  const toggleAssign = (judgeId: string, enrollId: string) => {
     setSelected((prev) => {
-      const current = prev[expertId] ?? []
+      const current = prev[judgeId] ?? []
       const next = current.includes(enrollId)
         ? current.filter((id) => id !== enrollId)
         : [...current, enrollId]
-      return { ...prev, [expertId]: next }
+      return { ...prev, [judgeId]: next }
     })
   }
 
   const saveAll = () => {
-    // TODO: call batch assignment API to persist assignments on server
-    Object.entries(selected).forEach(([expertId, enrollIds]) => {
-      assignEnrollments(expertId, enrollIds)
+    Object.entries(selected).forEach(([judgeId, projectIds]) => {
+      assignEnrollments(judgeId, projectIds)
     })
   }
 
-  const displayExperts: Expert[] = selectedExperts.length > 0
+  const displayJudges: Judge[] = selectedExperts.length > 0
     ? selectedExperts
-    : [{ expertId: 'e-1', name: '张志远', organization: '清华大学', domain: [], source: 'platform' }]
+    : [{ judgeId: 'j-1', name: '张志远', org: '清华大学' }]
 
   return (
     <div className="space-y-5">
@@ -71,17 +69,17 @@ export default function AssignmentPage() {
         </div>
       </div>
 
-      <div className="grid gap-4" style={{ gridTemplateColumns: `repeat(${Math.min(displayExperts.length, 3)}, 1fr)` }}>
-        {displayExperts.map((expert) => {
-          const assigned = selected[expert.expertId] ?? []
+      <div className="grid gap-4" style={{ gridTemplateColumns: `repeat(${Math.min(displayJudges.length, 3)}, 1fr)` }}>
+        {displayJudges.map((judge) => {
+          const assigned = selected[judge.judgeId] ?? []
           return (
-            <div key={expert.expertId} className="glass-card p-4 space-y-3">
+            <div key={judge.judgeId} className="glass-card p-4 space-y-3">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-xl bg-brand-blue/10 flex items-center justify-center text-brand-blue font-bold text-xs">
-                  {expert.name.slice(0, 1)}
+                  {judge.name.slice(0, 1)}
                 </div>
                 <div>
-                  <p className="text-sm font-bold text-slate-800">{expert.name}</p>
+                  <p className="text-sm font-bold text-slate-800">{judge.name}</p>
                   <p className="text-xs text-slate-400 flex items-center gap-1">
                     <Users className="w-3 h-3" />{assigned.length} 项
                   </p>
@@ -94,7 +92,7 @@ export default function AssignmentPage() {
                   return (
                     <button
                       key={proj.enrollId}
-                      onClick={() => toggleAssign(expert.expertId, proj.enrollId)}
+                      onClick={() => toggleAssign(judge.judgeId, proj.enrollId)}
                       className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold transition-all ${
                         isAssigned
                           ? 'bg-brand-blue/10 text-brand-blue'

@@ -354,11 +354,11 @@ export const ProjectWorkspace: React.FC<Props> = ({ projects, onCreateNew, onVie
       const projState = { ...copy[projectId] };
       if (type === 'material') {
         const listCopy = [...projState.materials];
-        listCopy[index] = { ...listCopy[index], bp: newName, updatedAt: new Date().toISOString().split('T')[0] };
+        listCopy[index] = { ...listCopy[index]!, bp: newName, updatedAt: new Date().toISOString().split('T')[0] } as typeof listCopy[number];
         projState.materials = listCopy;
       } else {
         const listCopy = [...projState.competitions];
-        listCopy[index] = { ...listCopy[index], bpName: newName };
+        listCopy[index] = { ...listCopy[index]!, bpName: newName };
         projState.competitions = listCopy;
       }
       

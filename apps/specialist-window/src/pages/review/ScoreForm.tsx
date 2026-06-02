@@ -102,7 +102,7 @@ const MOCK_DETAILS: Record<string, MockDetail> = {
   },
 }
 
-const FALLBACK_DETAIL = MOCK_DETAILS['task-1']
+const FALLBACK_DETAIL = MOCK_DETAILS['task-1']!
 
 export default function ScoreFormPage() {
   const { taskId } = useParams<{ taskId: string }>()

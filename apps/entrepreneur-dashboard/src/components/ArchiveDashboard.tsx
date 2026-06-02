@@ -138,7 +138,7 @@ export const ArchiveDashboard: React.FC<Props> = ({
     };
   }, [isCompHovered, paginateComp]);
 
-  const currentComp = COMPETITIONS[currentCompIndex];
+  const currentComp = COMPETITIONS[currentCompIndex]!;
 
   const [members, setMembers] = useState([
     { id: '1', name: '王发', role: '创建人', avatar: 'https://images.unsplash.com/photo-1599566150163-29194dcaad36?q=80&w=100&h=100&auto=format&fit=crop' },
@@ -161,7 +161,7 @@ export const ArchiveDashboard: React.FC<Props> = ({
 
   // Generate 10 items for the gallery
   const galleryItems = Array.from({ length: 10 }).map((_, idx) => {
-    const event = timelineEvents[idx % timelineEvents.length];
+    const event = timelineEvents[idx % timelineEvents.length]!;
     return {
       id: `ev-${idx}`,
       title: event.title,
@@ -252,104 +252,108 @@ export const ArchiveDashboard: React.FC<Props> = ({
         )}
       </AnimatePresence>
       {/* 1. Achievement Task Banner (AchievementMissionCenter) */}
-      <div className="space-y-6">
-        {/* 标题区域 */}
-        <div className="px-2">
-          <h2 className="text-xl font-bold tracking-tight text-slate-800">成就任务中心</h2>
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mt-1">
-            个人成就成长里程碑
-          </p>
-        </div>
+      <section className="space-y-5">
+        <header className="flex items-end justify-between">
+          <div>
+            <h2 className="text-xl font-semibold tracking-tight text-slate-900">成就任务中心</h2>
+            <p className="text-xs text-slate-500 mt-1">距离下一个里程碑还有 2 步 · 系统会持续陪你完成</p>
+          </div>
+          <button className="text-xs font-medium text-slate-500 hover:text-slate-900 flex items-center gap-1 transition-colors">
+            全部里程碑 <ArrowRight className="w-3.5 h-3.5" />
+          </button>
+        </header>
 
-        {/* AI 智能推荐卡片 */}
-        <motion.div 
+        <motion.div
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          className="relative group cursor-pointer"
+          className="relative bg-white border border-slate-200 rounded-2xl p-6 flex items-center justify-between gap-6
+                     shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_24px_-12px_rgba(15,23,42,0.08)]"
         >
-          {/* 外层炫彩光晕效果 */}
-          <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 rounded-[2rem] opacity-20 blur-2xl group-hover:opacity-40 transition-opacity duration-500" />
-          
-          {/* 主卡片内容 */}
-          <div className="relative bg-white border border-blue-100 rounded-[2rem] p-6 flex flex-col md:flex-row items-center justify-between shadow-xl shadow-blue-500/5 group-hover:border-blue-300 transition-all">
-            <div className="flex items-center gap-6">
-              {/* 左侧 AI 智能图标 */}
-              <div className="relative">
-                <div className="w-16 h-16 bg-slate-900 rounded-3xl flex items-center justify-center text-white shadow-2xl relative overflow-hidden group-hover:scale-105 transition-transform">
-                  <Sparkles size={32} className="animate-pulse relative z-10" />
-                  {/* 底部扩散光影 */}
-                  <div className="absolute inset-x-0 bottom-0 h-1/2 bg-blue-600/20 blur-xl" />
-                </div>
-                {/* 右上角小闪电标签 */}
-                <div className="absolute -top-1 -right-1 w-6 h-6 bg-blue-500 rounded-full border-4 border-white flex items-center justify-center shadow-lg">
-                  <Zap size={10} className="text-white fill-current" />
-                </div>
+          {/* Left rail accent — replaces the halo */}
+          <div className="absolute left-0 top-6 bottom-6 w-1 bg-[#0045c4] rounded-r-full" />
+
+          <div className="flex items-center gap-5 flex-1 min-w-0">
+            {/* Icon tile */}
+            <div className="relative shrink-0">
+              <div className="w-14 h-14 bg-[#0a1733] rounded-2xl flex items-center justify-center text-white">
+                <Sparkles className="w-6 h-6" />
               </div>
+              <span className="absolute -bottom-1 -right-1 inline-flex items-center gap-0.5 text-[10px] font-semibold bg-[#0045c4] text-white px-1.5 py-0.5 rounded-md shadow-sm">
+                <Zap className="w-2.5 h-2.5" />AI
+              </span>
+            </div>
 
-              {/* 中间文字与进度条区域 */}
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-black bg-blue-600 text-white px-2 py-0.5 rounded-md uppercase tracking-widest shadow-sm shadow-blue-100">
-                    AI 智慧推荐
-                  </span>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2 text-[11px] font-medium text-slate-500">
+                <span className="px-1.5 py-0.5 rounded-md bg-[#0045c4]/8 text-[#0045c4] font-semibold">AI 智慧推荐</span>
+                <span>·</span>
+                <span>个性化路径</span>
+              </div>
+              <h3 className="mt-1.5 text-lg font-semibold text-slate-900 truncate">
+                距离「人才大佬」称号还差 2 份材料
+              </h3>
+              <div className="mt-3 flex items-center gap-3">
+                <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden max-w-[280px]">
+                  <motion.div
+                    className="h-full bg-[#0045c4] rounded-full"
+                    initial={{ width: 0 }}
+                    animate={{ width: '80%' }}
+                    transition={{ duration: 1, ease: 'easeOut' }}
+                  />
                 </div>
-                
-                <p className="text-lg font-bold text-slate-800">
-                  发现新路径！正在通往 
-                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600 ml-1">
-                    「人才大佬」
-                  </span> 称号
-                </p>
-
-                {/* 进度条套件 */}
-                <div className="flex items-center gap-4">
-                  <div className="flex-1 h-1.5 w-48 bg-slate-100 rounded-full overflow-hidden">
-                    <motion.div 
-                      initial={{ width: 0 }}
-                      animate={{ width: '80%' }}
-                      transition={{ duration: 1, ease: "easeOut" }}
-                      className="h-full bg-gradient-to-r from-blue-500 to-purple-500"
-                    />
-                  </div>
-                  <p className="text-xs font-bold text-slate-500 italic">
-                    进度 8/10 
-                    <span className="text-blue-600 ml-2">再上传 2 份材料即可解锁证书 已达成 ✓</span>
-                  </p>
+                <div className="text-xs text-slate-500">
+                  <span className="font-mono tabular-nums font-semibold text-slate-900">8</span>
+                  <span className="text-slate-400">/</span>
+                  <span className="font-mono tabular-nums">10</span>
+                  <span className="ml-1">已完成</span>
                 </div>
               </div>
             </div>
+          </div>
 
-            {/* 右侧交互按钮 */}
-            <button className="mt-4 md:mt-0 flex items-center gap-3 bg-slate-900 text-white hover:bg-blue-600 px-8 py-4 rounded-2xl text-xs font-black uppercase tracking-widest transition-all shadow-xl shadow-slate-200 group-hover:scale-105 active:scale-95">
-              去同步档案 <ArrowRight size={16} />
+          <div className="flex items-center gap-2 shrink-0">
+            <button className="text-sm font-medium text-slate-600 hover:text-slate-900 px-4 py-2.5 rounded-xl hover:bg-slate-50 transition-colors">
+              稍后再说
+            </button>
+            <button className="flex items-center gap-2 bg-[#0045c4] hover:bg-[#003ba8] text-white px-5 py-2.5 rounded-xl text-sm font-medium shadow-sm transition-colors">
+              同步档案 <ArrowRight className="w-4 h-4" />
             </button>
           </div>
         </motion.div>
-      </div>
+      </section>
 
       {/* 2. Shrunk Competition Slider Module */}
       <div className="space-y-4">
         {/* Title */}
-        <div className="px-2 flex items-center justify-between">
-          <div className="space-y-1">
-            <h2 className="text-xl font-bold tracking-tight text-slate-800">热门征集 · 竞赛前沿</h2>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mt-1">
-              对接海量资源与高额奖金
-            </p>
+        <div className="flex items-end justify-between">
+          <div>
+            <h2 className="text-xl font-semibold tracking-tight text-slate-900">热门征集 · 竞赛前沿</h2>
+            <p className="text-xs text-slate-500 mt-1">本月共 12 场 · 报名中 3 场</p>
+          </div>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => paginateComp(-1)}
+              className="w-8 h-8 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-50 transition-colors"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => paginateComp(1)}
+              className="w-8 h-8 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-50 transition-colors"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
           </div>
         </div>
 
-        {/* Compressed Slider Container */}
-        <motion.div 
+        {/* Slider Container */}
+        <motion.div
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
           onMouseEnter={() => setIsCompHovered(true)}
           onMouseLeave={() => setIsCompHovered(false)}
-          className="relative rounded-[24px] overflow-hidden bg-white border border-slate-100 shadow-xl group transition-all duration-500 hover:shadow-blue-500/10 h-[220px] w-full"
+          className="relative rounded-2xl overflow-hidden bg-white border border-slate-200 group h-[240px] w-full"
         >
-          {/* Subtle inside glow */}
-          <div className="absolute top-0 right-0 w-64 h-64 bg-blue-400/5 rounded-full blur-[80px] pointer-events-none" />
-
           {/* Slider Content */}
           <div className="w-full h-full relative">
             <AnimatePresence initial={false} custom={compDirection}>
@@ -366,98 +370,93 @@ export const ArchiveDashboard: React.FC<Props> = ({
                 }}
                 className="absolute inset-0 flex flex-row w-full h-full"
               >
-                {/* Left Area (Sleek Description and Info) */}
-                <div className="flex-1 p-6 lg:p-8 flex flex-col justify-between relative z-10 bg-gradient-to-r from-blue-50/90 to-white/95 backdrop-blur-sm">
+                {/* Left Area */}
+                <div className="flex-1 p-7 flex flex-col justify-between relative z-10">
                   <div className="space-y-3">
-                    <div className="flex items-center gap-3">
-                      <span className="text-[9px] font-black bg-blue-600 text-white px-2 py-0.5 rounded-md uppercase tracking-wider shadow-sm">
-                        推荐
-                      </span>
-                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                        {currentComp.tagline}
+                    {/* Status chip */}
+                    <div className="flex items-center gap-2 text-xs">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 font-medium">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                        报名进行中
                       </span>
                     </div>
 
-                    <h3 className="text-lg lg:text-xl font-bold text-slate-900 tracking-tight leading-tight">
+                    <h3 className="text-2xl font-semibold text-slate-900 tracking-tight leading-tight">
                       {currentComp.title}
                     </h3>
-                    <p className="text-slate-500 text-[11px] font-medium max-w-xl leading-relaxed pl-3 border-l-2 border-slate-100 line-clamp-2">
+                    <p className="text-sm text-slate-500 max-w-xl leading-relaxed line-clamp-2">
                       {currentComp.description}
                     </p>
                   </div>
 
-                  {/* Compact Info Badges */}
-                  <div className="flex flex-wrap items-center gap-6 text-[11px] text-slate-500 font-bold border-t border-slate-50 pt-3">
+                  {/* Info row with deadline + location + reward */}
+                  <div className="flex items-center gap-5 text-sm text-slate-500">
                     <div className="flex items-center gap-1.5">
-                      <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                      <span>截止 {currentComp.deadline}</span>
+                      <Calendar className="w-3.5 h-3.5" />
+                      <span>
+                        截止 <span className="font-mono text-slate-700">{currentComp.deadline}</span>
+                        {' · '}还剩 <span className="text-rose-600 font-medium">14 天</span>
+                      </span>
                     </div>
                     <div className="flex items-center gap-1.5">
-                      <MapPin className="w-3.5 h-3.5 text-slate-400" />
+                      <MapPin className="w-3.5 h-3.5" />
                       <span>{currentComp.location}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <Trophy className="w-3.5 h-3.5" />
+                      <span>
+                        奖金池 <span className="font-mono text-slate-700">¥{currentComp.reward}{currentComp.rewardUnit}</span>
+                      </span>
                     </div>
                   </div>
                 </div>
 
-                {/* Right Area (Image and Action Button) */}
-                <div className="w-[30%] md:w-[40%] xl:w-[35%] relative overflow-hidden shrink-0 flex items-center justify-center bg-slate-950">
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-transparent to-transparent z-10" />
-                  <img 
-                    src={currentComp.image} 
-                    className="absolute inset-0 w-full h-full object-cover opacity-80 group-hover:scale-105 transition-transform duration-700" 
-                    alt={currentComp.title} 
+                {/* Right Area (Image) */}
+                <div className="w-[40%] relative overflow-hidden shrink-0">
+                  {/* Left fade so headline stays readable */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-white via-white/0 to-transparent z-10" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 to-transparent z-10" />
+                  <img
+                    src={currentComp.image}
+                    className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                    alt={currentComp.title}
                   />
 
-                  {/* Compact Reward Badge */}
-                  <div className="absolute top-4 right-4 z-20">
-                    <div className="bg-slate-900/95 backdrop-blur-md px-3.5 py-1.5 rounded-xl border border-white/10 text-white flex items-center gap-2 shadow-xl">
-                      <Trophy className="w-3.5 h-3.5 text-amber-400" />
-                      <span className="text-xs font-black tabular-nums">¥ {currentComp.reward}{currentComp.rewardUnit}</span>
-                    </div>
-                  </div>
-
-                  {/* Shrunk Registration Button */}
-                  <div className="absolute bottom-4 right-4 z-20 opacity-90 hover:opacity-100 transition-opacity">
-                    <button 
+                  {/* CTA pair bottom-right */}
+                  <div className="absolute bottom-4 right-4 z-20 flex items-center gap-2">
+                    <button className="bg-white/90 hover:bg-white backdrop-blur text-slate-900 text-sm font-medium px-4 py-2.5 rounded-xl transition-colors">
+                      查看详情
+                    </button>
+                    <button
                       onClick={onRegisterCompetition}
-                      className="bg-brand-blue hover:bg-blue-600 active:scale-95 text-white text-[11px] font-black px-5 py-2.5 rounded-xl transition-all shadow-lg flex items-center gap-1.5 group/btn"
+                      className="bg-[#0045c4] hover:bg-[#003ba8] text-white text-sm font-medium px-4 py-2.5 rounded-xl flex items-center gap-1.5 transition-colors"
                     >
-                      立即报名
-                      <ChevronRight className="w-3.5 h-3.5 group-hover/btn:translate-x-1 transition-transform" strokeWidth={2.5} />
+                      立即报名 <ArrowRight className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
               </motion.div>
             </AnimatePresence>
 
-            {/* Compact Navigation Arrows */}
-            <button 
-              onClick={() => paginateComp(-1)}
-              className="absolute left-2 top-1/2 -translate-y-1/2 z-35 w-8 h-8 rounded-full bg-white/80 border border-slate-100 flex items-center justify-center text-slate-500 hover:text-brand-blue opacity-0 group-hover:opacity-100 transition-all hover:bg-white active:scale-90 shadow-md"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-            <button 
-              onClick={() => paginateComp(1)}
-              className="absolute right-[calc(30%+8px)] md:right-[calc(40%+8px)] xl:right-[calc(35%+8px)] top-1/2 -translate-y-1/2 z-35 w-8 h-8 rounded-full bg-white/80 border border-slate-100 flex items-center justify-center text-slate-500 hover:text-brand-blue opacity-0 group-hover:opacity-100 transition-all hover:bg-white active:scale-90 shadow-md"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
-
-            {/* Shrunk Carousel Indicators */}
-            <div className="absolute bottom-3 left-6 flex gap-1.5 z-30">
-              {COMPETITIONS.map((_, idx) => (
-                <button 
-                  key={idx}
-                  onClick={() => goToCompSlide(idx)}
-                  className={cn(
-                    "h-1 rounded-full transition-all duration-300",
-                    currentCompIndex === idx 
-                      ? "w-4 bg-brand-blue shadow-sm" 
-                      : "w-2 bg-slate-300/60 hover:bg-slate-400"
-                  )}
-                />
-              ))}
+            {/* Carousel indicators + mono counter */}
+            <div className="absolute bottom-3 left-7 flex items-center gap-3 z-30">
+              <div className="flex gap-1.5">
+                {COMPETITIONS.map((_, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => goToCompSlide(idx)}
+                    className={cn(
+                      "h-1 rounded-full transition-all duration-300",
+                      currentCompIndex === idx
+                        ? "w-6 bg-brand-blue shadow-sm"
+                        : "w-2 bg-slate-200 hover:bg-slate-300"
+                    )}
+                  />
+                ))}
+              </div>
+              <span className="text-[11px] font-mono text-slate-400 tabular-nums">
+                {String(currentCompIndex + 1).padStart(2, '0')} / {String(COMPETITIONS.length).padStart(2, '0')}
+              </span>
             </div>
           </div>
         </motion.div>
@@ -496,7 +495,7 @@ export const ArchiveDashboard: React.FC<Props> = ({
             <motion.div 
               whileHover={{ y: -5 }}
               onClick={onRegisterCompetition}
-              className="min-w-[400px] h-64 rounded-[2.5rem] relative overflow-hidden group/card cursor-pointer snap-start flex flex-col justify-between p-10 bg-slate-950 text-white shadow-2xl"
+              className="min-w-[400px] h-64 rounded-3xl relative overflow-hidden group/card cursor-pointer snap-start flex flex-col justify-between p-10 bg-slate-950 text-white shadow-2xl"
             >
               {/* Background Image with Dark Overlay */}
               <div className="absolute inset-0 z-0">
@@ -549,7 +548,7 @@ export const ArchiveDashboard: React.FC<Props> = ({
                 key={category.id} 
                 whileHover={{ y: -5 }}
                 className={cn(
-                  "min-w-[400px] h-64 rounded-[2.5rem] relative overflow-hidden group/card cursor-pointer snap-start flex flex-col justify-between p-10",
+                  "min-w-[400px] h-64 rounded-3xl relative overflow-hidden group/card cursor-pointer snap-start flex flex-col justify-between p-10",
                   category.color === 'white' ? "bg-white shadow-2xl shadow-slate-200/50 border border-slate-100/50" : "text-white shadow-2xl"
                 )}
               >
@@ -628,7 +627,7 @@ export const ArchiveDashboard: React.FC<Props> = ({
       </section>
 
       {/* 3. Growth Section (Timeline & Chart Side-by-Side as in Image 2) */}
-      <section className="bg-white rounded-[3rem] p-12 border border-slate-100 shadow-2xl shadow-slate-200/40">
+      <section className="bg-white rounded-3xl p-12 border border-slate-100 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_24px_-12px_rgba(15,23,42,0.08)]">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 items-start">
             {/* Timeline Left */}
             <div className="lg:col-span-4 lg:border-r lg:border-slate-100 lg:pr-12">
@@ -650,7 +649,7 @@ export const ArchiveDashboard: React.FC<Props> = ({
                           "absolute -left-[31px] top-0 w-3 h-3 rounded-full border-2 border-white shadow-md z-10",
                           idx === 0 ? "bg-brand-blue ring-4 ring-blue-100" : idx === 1 ? "bg-amber-400" : "bg-blue-600"
                        )} />
-                       <div className="space-y-4 bg-slate-50/50 p-6 rounded-[2rem] border border-transparent hover:border-slate-200 hover:bg-white hover:shadow-xl hover:shadow-slate-200/40 transition-all cursor-default">
+                       <div className="space-y-4 bg-slate-50/50 p-6 rounded-2xl border border-transparent hover:border-slate-200 hover:bg-white hover:shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_24px_-12px_rgba(15,23,42,0.08)] transition-all cursor-default">
                           <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">{event.date}</span>
                           <h4 className="font-bold text-slate-800 text-lg group-hover:text-brand-blue transition-colors">{event.title}</h4>
                           <p className="text-xs text-slate-500 leading-relaxed font-medium">{event.description}</p>
@@ -697,7 +696,7 @@ export const ArchiveDashboard: React.FC<Props> = ({
       </section>
 
       {/* 4. Intelligent Resource Library (Table matching Image 1) */}
-      <section className="bg-white rounded-[2.5rem] border border-slate-100 shadow-2xl overflow-hidden">
+      <section className="bg-white rounded-3xl border border-slate-100 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_24px_-12px_rgba(15,23,42,0.08)] overflow-hidden">
         {/* 头部信息 */}
         <div className="p-8 border-b border-slate-100 flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -733,10 +732,10 @@ export const ArchiveDashboard: React.FC<Props> = ({
                     <input 
                         type="text"
                         placeholder="通过文件名、DOI、流水号快速检索..."
-                        className="w-full bg-slate-50 border-0 rounded-[1.5rem] pl-16 pr-8 py-5 text-sm font-bold text-slate-700 placeholder-slate-300 focus:ring-4 focus:ring-brand-blue/5 transition-all outline-none"
+                        className="w-full bg-slate-50 border-0 rounded-2xl pl-16 pr-8 py-5 text-sm font-medium text-slate-700 placeholder-slate-300 focus:ring-4 focus:ring-brand-blue/5 transition-all outline-none"
                     />
                 </div>
-                <button className="px-10 py-5 bg-brand-blue text-white rounded-[1.5rem] font-black text-sm flex items-center gap-3 shadow-xl shadow-blue-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all">
+                <button className="px-10 py-5 bg-brand-blue hover:bg-[#003ba8] text-white rounded-2xl font-semibold text-sm flex items-center gap-3 shadow-sm hover:scale-[1.02] active:scale-[0.98] transition-all">
                     <Upload className="w-5 h-5" />
                     上传新文件
                 </button>
@@ -827,7 +826,7 @@ export const ArchiveDashboard: React.FC<Props> = ({
               initial={{ scale: 0.95, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0, y: 20 }}
-              className="w-full max-w-6xl h-full max-h-[85vh] bg-white/[0.01] border border-white/5 rounded-[3.5rem] backdrop-blur-[60px] relative overflow-hidden flex flex-col shadow-2xl"
+              className="w-full max-w-6xl h-full max-h-[85vh] bg-white/[0.01] border border-white/5 rounded-3xl backdrop-blur-[60px] relative overflow-hidden flex flex-col shadow-2xl"
             >
               {/* Background Glows inside container */}
               <div className="absolute top-0 left-0 w-full h-full pointer-events-none">

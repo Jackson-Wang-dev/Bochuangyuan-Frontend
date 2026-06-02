@@ -1,3 +1,5 @@
+import type { FileRef, ISODate } from './shared'
+
 export interface ProjectContent {
   title: string
   summary: string
@@ -21,12 +23,20 @@ export interface ProjectVersion {
   updatedAt: string
 }
 
+// E04 — table: projects
 export interface Project {
   projectId: string
   name: string
   ownerId: string
-  currentVersionId: string
-  versions: ProjectVersion[]
-  createdAt: string
-  updatedAt: string
+  // E04 spec fields
+  oneLiner?: string
+  track?: string
+  description?: string
+  bpFile?: FileRef
+  attachments?: FileRef[]
+  // Existing versioning fields
+  currentVersionId?: string
+  versions?: ProjectVersion[]
+  createdAt: ISODate
+  updatedAt?: string
 }

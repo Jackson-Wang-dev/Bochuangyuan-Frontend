@@ -69,8 +69,8 @@ export default function ReportDetail() {
 
   if (!session?.matchedPersona) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p className="text-gray-500">加载中...</p>
+      <div className="min-h-screen flex items-center justify-center bg-brand-paper">
+        <p className="text-slate-500">加载中...</p>
       </div>
     )
   }
@@ -79,38 +79,65 @@ export default function ReportDetail() {
   const sortedScores = [...dimensionScores].sort((a, b) => a.rank - b.rank)
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-36">
-      {/* Header */}
-      <div className="bg-result-gradient px-4 pt-10 pb-8 text-white">
+    <div className="min-h-screen bg-brand-paper pb-36">
+      {/* Header — ink-blue */}
+      <div className="ink-blue px-4 pt-10 pb-8 text-white">
         <button
           onClick={() => navigate(-1)}
-          className="flex items-center gap-1 text-white/70 text-sm mb-4 hover:text-white transition-colors"
+          className="flex items-center gap-1 text-white/70 text-[13px] mb-4 hover:text-white transition-colors"
         >
           <ChevronLeft size={16} />
           返回
         </button>
-        <p className="text-white/65 text-sm mb-1">TA 的创业者人格报告</p>
-        <h1 className="text-2xl font-bold">{matchedPersona.imageEmoji} {matchedPersona.name}</h1>
+        <p className="font-mono text-[10px] text-white/50 tracking-[0.18em] uppercase mb-2">
+          TA 的创业者人格报告
+        </p>
+        <h1 className="text-2xl font-bold">{matchedPersona.name}</h1>
       </div>
 
       {/* Radar */}
       <div className="px-4 py-6">
-        <h2 className="text-center text-xs font-semibold text-gray-500 uppercase tracking-widest mb-4">
-          六维能力雷达
-        </h2>
-        <div className="bg-white rounded-3xl shadow-lg p-5">
+        <div className="flex items-end justify-between mb-3">
+          <h2 className="text-[13px] font-semibold text-slate-900">六维能力雷达</h2>
+          <span className="font-mono text-[10px] text-slate-400 tracking-wider">06 DIMENSIONS</span>
+        </div>
+        <div className="bg-white rounded-2xl border border-slate-200 p-5">
           <RadarChart scores={dimensionScores} animate={false} size={280} />
-          <div className="grid grid-cols-2 gap-2 mt-4">
-            {sortedScores.map((s) => {
-              const dim = DIMENSIONS.find((d) => d.code === s.code)
+          {/* Bar list */}
+          <div className="space-y-2 mt-3">
+            {sortedScores.map((s, i) => {
+              const barColor =
+                i < 2 ? '#0045c4' : i < 4 ? 'rgba(0,69,196,0.8)' : 'rgba(0,69,196,0.6)'
               return (
-                <div key={s.code} className="flex items-center gap-2 py-1.5 px-2 rounded-xl bg-gray-50">
-                  <span className="text-sm font-bold text-[#5b5fed] w-5 text-center">{s.rank}</span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-gray-700 truncate">{s.name}</p>
-                    <p className="text-xs text-gray-400 truncate">{dim?.description}</p>
+                <div
+                  key={s.code}
+                  className="grid grid-cols-[16px_1fr_32px] items-center gap-2 text-[12px]"
+                >
+                  <span
+                    className={`font-mono font-semibold ${
+                      i < 2 ? 'text-[#0045c4]' : 'text-slate-400'
+                    }`}
+                  >
+                    {String(s.rank).padStart(2, '0')}
+                  </span>
+                  <div>
+                    <div className="flex justify-between mb-0.5">
+                      <span className="font-medium text-slate-700">{s.name}</span>
+                    </div>
+                    <div className="h-1 bg-slate-100 rounded-full overflow-hidden">
+                      <div
+                        className="h-full rounded-full"
+                        style={{ width: `${s.normalizedScore}%`, backgroundColor: barColor }}
+                      />
+                    </div>
                   </div>
-                  <span className="text-xs font-bold text-gray-500 tabular-nums">{s.normalizedScore}</span>
+                  <span
+                    className={`font-mono tabular-nums font-semibold text-right ${
+                      i < 4 ? 'text-slate-700' : 'text-slate-500'
+                    }`}
+                  >
+                    {s.normalizedScore}
+                  </span>
                 </div>
               )
             })}
@@ -120,7 +147,7 @@ export default function ReportDetail() {
 
       {/* Persona */}
       <div className="mb-6">
-        <h2 className="text-center text-xs font-semibold text-gray-500 uppercase tracking-widest mb-4 px-4">
+        <h2 className="text-[11px] font-semibold text-slate-400 uppercase tracking-[0.2em] mb-3 px-4">
           创业者人格
         </h2>
         <PersonaCard persona={matchedPersona} showDescription={true} />
@@ -129,23 +156,25 @@ export default function ReportDetail() {
       {/* AI Report */}
       {aiReport && (
         <div className="mb-8">
-          <h2 className="text-center text-xs font-semibold text-gray-500 uppercase tracking-widest mb-4 px-4">
+          <h2 className="text-[11px] font-semibold text-slate-400 uppercase tracking-[0.2em] mb-3 px-4">
             专属洞察
           </h2>
           <AiReportSection content={aiReport.content} shouldStart={true} />
         </div>
       )}
 
-      {/* Big CTA */}
-      <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[768px] bg-white border-t border-gray-100 px-4 py-4 shadow-xl">
+      {/* Sticky CTA */}
+      <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[768px] bg-white border-t border-slate-100 px-4 py-4 shadow-xl">
         <button
           onClick={() => navigate('/')}
-          className="w-full flex items-center justify-center gap-2 py-4 bg-[#5b5fed] text-white font-bold text-base rounded-2xl shadow-lg hover:bg-[#4f54d4] transition-colors active:scale-[0.98]"
+          className="w-full flex items-center justify-center gap-2 py-4 bg-[#0045c4] text-white font-bold text-base rounded-2xl shadow-sm hover:bg-[#003ba8] transition-colors active:scale-[0.98]"
         >
           测测你是哪一型创业者？
           <ArrowRight size={20} />
         </button>
-        <p className="text-center text-xs text-gray-400 mt-2">免费 · 3 分钟 · 23 种创业者类型</p>
+        <p className="text-center text-[11px] text-slate-400 mt-2">
+          免费 · 预计 3 分钟 · <span className="font-mono tabular-nums">23</span> 种创业者类型
+        </p>
       </div>
     </div>
   )

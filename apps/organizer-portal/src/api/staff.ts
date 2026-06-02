@@ -1,5 +1,23 @@
 import { apiClient } from '@bochuangyuan/api'
-import type { StaffMember, OperationLog } from '@bochuangyuan/types'
+
+export interface StaffMember {
+  staffId: string
+  name: string
+  email: string
+  role: 'admin' | 'reviewer' | 'viewer'
+  joinedAt: string
+}
+
+export interface OperationLog {
+  logId: string
+  operatorId: string
+  operatorName: string
+  action: string
+  targetType: string
+  targetId: string
+  detail: string
+  createdAt: string
+}
 
 export async function fetchStaff(): Promise<StaffMember[]> {
   const { data } = await apiClient.get<StaffMember[]>('/organizer/staff')

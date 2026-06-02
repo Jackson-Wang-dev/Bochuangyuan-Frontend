@@ -47,10 +47,10 @@ export default function LoadingScreen({ onComplete, duration = 2800 }: LoadingSc
     <div className="flex flex-col items-center justify-center py-16 px-8">
       {/* Glow orb */}
       <div className="relative mb-8">
-        <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#5b5fed] to-[#8b5cf6] animate-glow" />
-        <div className="absolute inset-0 w-20 h-20 rounded-full bg-gradient-to-br from-[#5b5fed] to-[#8b5cf6] opacity-40 blur-xl animate-pulse" />
+        <div className="w-20 h-20 rounded-full bg-[#0045c4] animate-glow" />
+        <div className="absolute inset-0 w-20 h-20 rounded-full bg-[#0045c4] opacity-30 blur-xl animate-pulse" />
         {/* Spinning ring */}
-        <div className="absolute -inset-2 border-2 border-[#5b5fed]/30 border-t-[#5b5fed] rounded-full animate-spin" />
+        <div className="absolute -inset-2 border-2 border-[#0045c4]/30 border-t-[#0045c4] rounded-full animate-spin" />
       </div>
 
       {/* Step text */}
@@ -67,7 +67,7 @@ export default function LoadingScreen({ onComplete, duration = 2800 }: LoadingSc
           <div
             key={i}
             className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${
-              i === stepIndex ? 'bg-[#5b5fed] scale-125' : 'bg-gray-300'
+              i === stepIndex ? 'bg-[#0045c4] scale-125' : 'bg-slate-300'
             }`}
           />
         ))}

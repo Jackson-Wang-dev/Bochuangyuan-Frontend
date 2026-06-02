@@ -69,7 +69,7 @@ export const ProjectDetails: React.FC<Props> = ({ project, onBack, onEditBP, onR
 
         const typeNextChar = () => {
           if (currentInsightIdx < insights.length) {
-            const fullText = insights[currentInsightIdx];
+            const fullText = insights[currentInsightIdx] ?? '';
             if (currentCharIdx < fullText.length) {
               tempInsights[currentInsightIdx] = fullText.slice(0, currentCharIdx + 1);
               setTypedInsights([...tempInsights]);
@@ -464,7 +464,7 @@ export const ProjectDetails: React.FC<Props> = ({ project, onBack, onEditBP, onR
         onEdit={project.status === 'pending' ? () => {
           setIsPreviewOpen(false);
           // Assuming the mock plan matches one in App.tsx for editing
-          onEditBP({ id: 'mock-bp-1', title: '项目申报商业计划书 (BP).v3', lastModified: '2024-05-24' });
+          onEditBP({ id: 'mock-bp-1', title: '项目申报商业计划书 (BP).v3', lastModified: '2024-05-24', previewText: '' });
         } : undefined}
       />
     </div>

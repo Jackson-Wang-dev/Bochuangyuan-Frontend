@@ -1,12 +1,11 @@
 import { useState } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
-import type { StaffMember } from '@bochuangyuan/types'
+import type { StaffMember } from '@/api/staff'
 
-// TODO: replace with API call to fetch organization staff list (endpoint TBD)
 const MOCK_STAFF: StaffMember[] = [
-  { staffId: 's-1', name: '刘管理', email: 'liu@example.com', role: 'admin',    joinedAt: '2024-01-01' },
+  { staffId: 's-1', name: '刘管理', email: 'liu@example.com',   role: 'admin',    joinedAt: '2024-01-01' },
   { staffId: 's-2', name: '张审核', email: 'zhang@example.com', role: 'reviewer', joinedAt: '2024-02-15' },
-  { staffId: 's-3', name: '王浏览', email: 'wang@example.com', role: 'viewer',  joinedAt: '2024-03-20' },
+  { staffId: 's-3', name: '王浏览', email: 'wang@example.com',  role: 'viewer',   joinedAt: '2024-03-20' },
 ]
 
 const ROLE_LABELS: Record<StaffMember['role'], string> = {
@@ -28,7 +27,6 @@ export default function StaffManagementPage() {
 
   const handleAdd = () => {
     if (!form.name || !form.email) return
-    // TODO: call invite/add staff API; use returned staffId instead of local Date.now()
     const member: StaffMember = { ...form, staffId: `s-${Date.now()}`, joinedAt: new Date().toISOString().slice(0, 10) }
     setStaff((s) => [...s, member])
     setForm({ name: '', email: '', role: 'viewer' })

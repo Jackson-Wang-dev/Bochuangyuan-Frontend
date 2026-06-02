@@ -1,54 +1,56 @@
 import { create } from 'zustand'
-import type { Expert, ReviewAssignment } from '@bochuangyuan/types'
+import type { Judge, JudgeAssignment, ReviewStage } from '@bochuangyuan/types'
 
 interface ExpertState {
-  experts: Expert[]
-  selectedExperts: Expert[]
-  assignments: ReviewAssignment[]
+  judges: Judge[]
+  selectedExperts: Judge[]
+  assignments: JudgeAssignment[]
 
-  setExperts: (list: Expert[]) => void
-  selectExpert: (expert: Expert) => void
-  deselectExpert: (expertId: string) => void
-  addManualExpert: (expert: Expert) => void
-  setAssignments: (list: ReviewAssignment[]) => void
-  assignEnrollments: (expertId: string, enrollIds: string[]) => void
+  setJudges: (list: Judge[]) => void
+  selectExpert: (judge: Judge) => void
+  deselectExpert: (judgeId: string) => void
+  addManualExpert: (judge: Judge) => void
+  setAssignments: (list: JudgeAssignment[]) => void
+  assignEnrollments: (judgeId: string, projectIds: string[]) => void
 }
 
 export const useExpertStore = create<ExpertState>()((set) => ({
-  experts: [],
+  judges: [],
   selectedExperts: [],
   assignments: [],
 
-  setExperts: (experts) => set({ experts }),
+  setJudges: (judges) => set({ judges }),
 
-  selectExpert: (expert) =>
+  selectExpert: (judge) =>
     set((s) => ({
-      selectedExperts: s.selectedExperts.find((e) => e.expertId === expert.expertId)
+      selectedExperts: s.selectedExperts.find((j) => j.judgeId === judge.judgeId)
         ? s.selectedExperts
-        : [...s.selectedExperts, expert],
+        : [...s.selectedExperts, judge],
     })),
 
-  deselectExpert: (expertId) =>
-    set((s) => ({ selectedExperts: s.selectedExperts.filter((e) => e.expertId !== expertId) })),
+  deselectExpert: (judgeId) =>
+    set((s) => ({ selectedExperts: s.selectedExperts.filter((j) => j.judgeId !== judgeId) })),
 
-  addManualExpert: (expert) =>
-    set((s) => ({ experts: [...s.experts, expert] })),
+  addManualExpert: (judge) =>
+    set((s) => ({ judges: [...s.judges, judge] })),
 
   setAssignments: (assignments) => set({ assignments }),
 
-  assignEnrollments: (expertId, enrollIds) =>
+  assignEnrollments: (judgeId, projectIds) =>
     set((s) => {
-      const existing = s.assignments.find((a) => a.expertId === expertId)
-      const newAssignment: ReviewAssignment = {
-        assignmentId: existing?.assignmentId ?? `assign-${Date.now()}`,
+      const existing = s.assignments.find((a) => a.judgeId === judgeId)
+      const stage: ReviewStage = 'Prelim'
+      const newAssignment: JudgeAssignment = {
+        assignId: existing?.assignId ?? `assign-${Date.now()}`,
         competitionId: '',
-        expertId,
-        enrollIds,
+        stage,
+        judgeId,
+        projectIds,
         assignedAt: new Date().toISOString(),
       }
       return {
         assignments: existing
-          ? s.assignments.map((a) => a.expertId === expertId ? newAssignment : a)
+          ? s.assignments.map((a) => a.judgeId === judgeId ? newAssignment : a)
           : [...s.assignments, newAssignment],
       }
     }),

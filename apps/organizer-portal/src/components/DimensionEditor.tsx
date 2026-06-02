@@ -1,10 +1,16 @@
 import { Plus, Trash2, AlertCircle } from 'lucide-react'
-import type { ScoreDimensionConfig } from '@bochuangyuan/types'
 import { cn } from '@/lib/utils'
 
+export interface DimensionItem {
+  key: string
+  label: string
+  weight: number
+  description?: string
+}
+
 interface DimensionEditorProps {
-  dimensions: ScoreDimensionConfig[]
-  onChange: (dims: ScoreDimensionConfig[]) => void
+  dimensions: DimensionItem[]
+  onChange: (dims: DimensionItem[]) => void
 }
 
 export function DimensionEditor({ dimensions, onChange }: DimensionEditorProps) {
@@ -19,7 +25,7 @@ export function DimensionEditor({ dimensions, onChange }: DimensionEditorProps) 
     onChange(dimensions.filter((d) => d.key !== key))
   }
 
-  const update = (key: string, field: keyof ScoreDimensionConfig, value: string | number) => {
+  const update = (key: string, field: keyof DimensionItem, value: string | number) => {
     onChange(dimensions.map((d) => d.key === key ? { ...d, [field]: value } : d))
   }
 

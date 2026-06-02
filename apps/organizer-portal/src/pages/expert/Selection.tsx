@@ -3,28 +3,26 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { ArrowRight, UserPlus } from 'lucide-react'
 import { ExpertPicker } from '@/components/ExpertPicker'
 import { useExpertStore } from '@/store/expertStore'
-import type { Expert } from '@bochuangyuan/types'
+import type { Judge } from '@bochuangyuan/types'
 
 export default function ExpertSelectionPage() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { selectedExperts, selectExpert, deselectExpert, addManualExpert } = useExpertStore()
   const [showManual, setShowManual] = useState(false)
-  const [manualForm, setManualForm] = useState({ name: '', organization: '', contactInfo: '' })
+  const [manualForm, setManualForm] = useState({ name: '', org: '', contact: '' })
 
   const handleAddManual = () => {
-    if (!manualForm.name || !manualForm.organization) return
-    const expert: Expert = {
-      expertId: `manual-${Date.now()}`,
+    if (!manualForm.name || !manualForm.org) return
+    const judge: Judge = {
+      judgeId: `manual-${Date.now()}`,
       name: manualForm.name,
-      organization: manualForm.organization,
-      domain: [],
-      source: 'manual',
-      contactInfo: manualForm.contactInfo,
+      org: manualForm.org,
+      contact: manualForm.contact,
     }
-    addManualExpert(expert)
-    selectExpert(expert)
-    setManualForm({ name: '', organization: '', contactInfo: '' })
+    addManualExpert(judge)
+    selectExpert(judge)
+    setManualForm({ name: '', org: '', contact: '' })
     setShowManual(false)
   }
 
@@ -60,14 +58,14 @@ export default function ExpertSelectionPage() {
               className="border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/20"
             />
             <input
-              value={manualForm.organization}
-              onChange={(e) => setManualForm((f) => ({ ...f, organization: e.target.value }))}
+              value={manualForm.org}
+              onChange={(e) => setManualForm((f) => ({ ...f, org: e.target.value }))}
               placeholder="机构 *"
               className="border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/20"
             />
             <input
-              value={manualForm.contactInfo}
-              onChange={(e) => setManualForm((f) => ({ ...f, contactInfo: e.target.value }))}
+              value={manualForm.contact}
+              onChange={(e) => setManualForm((f) => ({ ...f, contact: e.target.value }))}
               placeholder="联系方式（选填）"
               className="border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/20"
             />

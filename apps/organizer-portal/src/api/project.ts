@@ -1,12 +1,12 @@
 import { apiClient } from '@bochuangyuan/api'
-import type { EnrollmentRecord } from '@bochuangyuan/types'
+import type { Registration } from '@bochuangyuan/types'
 
-export async function fetchEnrollments(competitionId: string): Promise<EnrollmentRecord[]> {
-  const { data } = await apiClient.get<EnrollmentRecord[]>(`/organizer/competitions/${competitionId}/enrollments`)
+export async function fetchRegistrations(competitionId: string): Promise<Registration[]> {
+  const { data } = await apiClient.get<Registration[]>(`/organizer/competitions/${competitionId}/registrations`)
   return data
 }
 
-export async function fetchEnrollment(competitionId: string, enrollId: string): Promise<EnrollmentRecord> {
-  const { data } = await apiClient.get<EnrollmentRecord>(`/organizer/competitions/${competitionId}/enrollments/${enrollId}`)
+export async function fetchRegistration(competitionId: string, regId: string): Promise<Registration> {
+  const { data } = await apiClient.get<Registration>(`/organizer/competitions/${competitionId}/registrations/${regId}`)
   return data
 }

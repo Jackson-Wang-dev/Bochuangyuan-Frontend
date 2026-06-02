@@ -2,18 +2,20 @@
 
 @theme {
   --color-brand-blue: #0045c4;
+  --color-brand-blue-2: #003ba8;
+  --color-brand-ink: #0a1733;
+  --color-brand-paper: #f6f7fb;
   --color-brand-light-blue: #eff6ff;
   --color-brand-cyan: #0ea5e9;
-  
-  --background-image-aurora: none;
 
-  --font-sans: "Inter", "system-ui", sans-serif;
-  --font-mono: "JetBrains Mono", "monospace";
+  --font-sans: "Inter", "Noto Sans SC", "system-ui", sans-serif;
+  --font-serif: "Source Serif 4", "Noto Serif SC", serif;
+  --font-mono: "JetBrains Mono", "ui-monospace", monospace;
 }
 
 @layer base {
   body {
-    @apply bg-[#f8fafc] text-slate-900 antialiased selection:bg-brand-blue/10;
+    @apply bg-brand-paper text-slate-900 antialiased selection:bg-brand-blue/10;
   }
 }
 
@@ -26,12 +28,13 @@
   @apply bg-white rounded-2xl shadow-sm border border-slate-200;
 }
 
-@utility glow-purple {
-  box-shadow: 0 10px 15px -3px rgba(139, 92, 246, 0.2);
-}
-
-@utility glow-blue {
-  box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.2);
+/* Deep ink header — brand-blue radial glow + dotted grid */
+@utility header-ink {
+  background-color: #0a1733;
+  background-image:
+    radial-gradient(80% 60% at 20% 0%, rgba(0, 69, 196, 0.55) 0%, rgba(10, 23, 51, 0) 60%),
+    radial-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px);
+  background-size: auto, 24px 24px;
 }
 
 @keyframes float {
@@ -48,7 +51,7 @@
   display: inline-block;
   width: 2px;
   height: 1.1em;
-  background-color: #5b5fed;
+  background-color: #0045c4;
   margin-left: 2px;
   vertical-align: text-bottom;
   animation: blink 1s step-end infinite;
@@ -60,8 +63,8 @@
 }
 
 @keyframes glow {
-  0%, 100% { box-shadow: 0 0 20px rgba(91, 95, 237, 0.3); }
-  50% { box-shadow: 0 0 40px rgba(91, 95, 237, 0.6), 0 0 60px rgba(139, 92, 246, 0.3); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(0, 69, 196, 0.3); }
+  50% { box-shadow: 0 0 20px 4px rgba(0, 69, 196, 0.2); }
 }
 
 .animate-glow {

@@ -1,4 +1,4 @@
-import { ChevronLeft, Eye, Trash2 } from 'lucide-react'
+import { ChevronLeft, Eye, FileText, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useUserStore } from '../store/userStore'
@@ -29,9 +29,9 @@ export default function MyReports() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-brand-gradient px-4 pt-10 pb-6 text-white">
+    <div className="min-h-screen bg-brand-paper">
+      {/* Header — ink-blue */}
+      <div className="ink-blue px-4 pt-10 pb-6 text-white">
         <button
           onClick={() => navigate('/')}
           className="flex items-center gap-1 text-white/70 text-sm mb-4 hover:text-white transition-colors"
@@ -40,19 +40,23 @@ export default function MyReports() {
           返回首页
         </button>
         <h1 className="text-2xl font-bold">我的报告</h1>
-        <p className="text-white/65 text-sm mt-1">共 {myReports.length} 份测评记录</p>
+        <p className="text-white/65 text-[13px] mt-1">
+          共 <span className="font-mono tabular-nums">{myReports.length}</span> 份测评记录
+        </p>
       </div>
 
       {/* Reports list */}
       <div className="px-4 py-6">
         {myReports.length === 0 ? (
           <div className="text-center py-16">
-            <p className="text-4xl mb-4">📋</p>
-            <p className="text-gray-500 font-medium mb-2">暂无测评记录</p>
-            <p className="text-gray-400 text-sm mb-6">完成一次测评后，报告会保存在这里</p>
+            <div className="w-14 h-14 rounded-2xl bg-[#0045c4]/8 text-[#0045c4] flex items-center justify-center mx-auto mb-4">
+              <FileText className="w-7 h-7" />
+            </div>
+            <p className="text-slate-600 font-medium mb-2">暂无测评记录</p>
+            <p className="text-slate-400 text-[13px] mb-6">完成一次测评后，报告会保存在这里</p>
             <button
               onClick={() => navigate('/')}
-              className="px-6 py-3 bg-[#5b5fed] text-white font-medium rounded-2xl text-sm hover:bg-[#4f54d4] transition-colors"
+              className="px-6 py-3 bg-[#0045c4] text-white font-medium rounded-2xl text-sm hover:bg-[#003ba8] transition-colors"
             >
               开始测评
             </button>
@@ -78,26 +82,30 @@ export default function MyReports() {
               return (
                 <div
                   key={report.uuid}
-                  className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100"
+                  className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm"
                 >
                   <div className="flex items-start gap-3">
-                    {/* Emoji */}
-                    <div className="w-12 h-12 bg-gray-50 rounded-2xl flex items-center justify-center text-2xl flex-shrink-0">
-                      {persona.imageEmoji}
+                    {/* Monogram tile */}
+                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#0045c4] to-[#003ba8] flex items-center justify-center text-white flex-shrink-0">
+                      <span className="font-serif text-xl font-bold">
+                        {persona.name.charAt(0)}
+                      </span>
                     </div>
 
                     {/* Info */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-0.5">
-                        <p className="font-semibold text-gray-900 text-sm truncate">{persona.name}</p>
+                        <p className="font-semibold text-slate-900 text-sm truncate">{persona.name}</p>
                         {isLatest && (
-                          <span className="flex-shrink-0 px-2 py-0.5 bg-[#5b5fed]/10 text-[#5b5fed] text-xs font-bold rounded-full">
+                          <span className="flex-shrink-0 px-2 py-0.5 bg-[#0045c4]/8 text-[#0045c4] text-xs font-semibold rounded-md">
                             最新
                           </span>
                         )}
                       </div>
-                      <p className="text-[#5b5fed] text-xs mb-1 truncate">"{persona.keyword}"</p>
-                      <p className="text-gray-400 text-xs">
+                      <blockquote className="text-[#0045c4] text-xs mb-1 truncate font-serif italic">
+                        "{persona.keyword}"
+                      </blockquote>
+                      <p className="text-slate-400 text-xs font-mono tabular-nums">
                         {dateStr} {timeStr}
                       </p>
                     </div>
@@ -107,7 +115,7 @@ export default function MyReports() {
                   <div className="flex gap-2 mt-3">
                     <button
                       onClick={() => navigate(`/report/${report.uuid}`)}
-                      className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-[#5b5fed] text-white text-xs font-medium hover:bg-[#4f54d4] transition-colors"
+                      className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-[#0045c4] text-white text-xs font-medium hover:bg-[#003ba8] transition-colors"
                     >
                       <Eye size={14} />
                       查看报告
@@ -118,7 +126,7 @@ export default function MyReports() {
                         'flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-medium transition-all',
                         deleteConfirm === report.uuid
                           ? 'bg-red-500 text-white'
-                          : 'bg-gray-100 text-gray-500 hover:bg-red-50 hover:text-red-500',
+                          : 'bg-slate-100 text-slate-500 hover:bg-red-50 hover:text-red-500',
                       ].join(' ')}
                     >
                       <Trash2 size={14} />

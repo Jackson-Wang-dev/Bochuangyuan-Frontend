@@ -1,5 +1,5 @@
 import { apiClient } from '@bochuangyuan/api'
-import type { Competition, CompetitionApplication } from '@bochuangyuan/types'
+import type { Competition, Registration } from '@bochuangyuan/types'
 
 export async function fetchCompetitions(): Promise<Competition[]> {
   const { data } = await apiClient.get<Competition[]>('/competitions')
@@ -14,15 +14,15 @@ export async function fetchCompetition(competitionId: string): Promise<Competiti
 export async function applyCompetition(
   competitionId: string,
   projectVersionId: string,
-): Promise<CompetitionApplication> {
-  const { data } = await apiClient.post<CompetitionApplication>('/competition-applications', {
+): Promise<Registration> {
+  const { data } = await apiClient.post<Registration>('/registrations', {
     competitionId,
     projectVersionId,
   })
   return data
 }
 
-export async function fetchMyApplications(): Promise<CompetitionApplication[]> {
-  const { data } = await apiClient.get<CompetitionApplication[]>('/competition-applications/mine')
+export async function fetchMyApplications(): Promise<Registration[]> {
+  const { data } = await apiClient.get<Registration[]>('/registrations/mine')
   return data
 }

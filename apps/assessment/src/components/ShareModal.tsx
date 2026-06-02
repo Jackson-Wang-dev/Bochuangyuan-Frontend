@@ -40,12 +40,12 @@ export default function ShareModal({ reportUuid, personaName, onClose }: ShareMo
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-2">
-            <Share2 size={18} className="text-[#5b5fed]" />
-            <h3 className="text-lg font-bold text-gray-900">分享报告</h3>
+            <Share2 size={18} className="text-[#0045c4]" />
+            <h3 className="text-lg font-bold text-slate-900">分享报告</h3>
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors"
+            className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 transition-colors"
           >
             <X size={16} />
           </button>
@@ -53,26 +53,26 @@ export default function ShareModal({ reportUuid, personaName, onClose }: ShareMo
 
         {/* QR Code */}
         <div className="flex flex-col items-center mb-6">
-          <div className="p-4 bg-white border border-gray-200 rounded-2xl shadow-sm mb-3">
+          <div className="p-4 bg-white border border-slate-200 rounded-2xl shadow-sm mb-3">
             <QRCodeSVG value={shareUrl} size={140} level="M" />
           </div>
-          <p className="text-sm text-gray-500 text-center">
-            扫码查看 <span className="text-[#5b5fed] font-medium">{personaName}</span> 报告
+          <p className="text-sm text-slate-500 text-center">
+            扫码查看 <span className="text-[#0045c4] font-medium">{personaName}</span> 报告
           </p>
         </div>
 
         {/* Link copy */}
         <div className="flex gap-2 mb-6">
-          <div className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-500 truncate">
+          <div className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-500 truncate">
             {shareUrl}
           </div>
           <button
             onClick={handleCopy}
             className={[
-              'flex items-center gap-2 px-4 py-3 rounded-xl font-medium text-sm transition-all',
+              'flex items-center gap-2 px-4 py-3 rounded-xl font-medium text-sm transition-all active:scale-95',
               copied
                 ? 'bg-emerald-500 text-white'
-                : 'bg-[#5b5fed] text-white hover:bg-[#4f54d4] active:scale-95',
+                : 'bg-[#0045c4] text-white hover:bg-[#003ba8]',
             ].join(' ')}
           >
             {copied ? <Check size={16} /> : <Copy size={16} />}
@@ -81,10 +81,10 @@ export default function ShareModal({ reportUuid, personaName, onClose }: ShareMo
         </div>
 
         {/* Platform promo */}
-        <div className="bg-gradient-to-r from-[#5b5fed]/8 to-[#8b5cf6]/8 rounded-2xl p-4 border border-[#5b5fed]/15">
-          <p className="text-xs text-gray-500 mb-1">发现更多</p>
-          <p className="text-sm font-semibold text-gray-800">博创园 · 创业者成长平台</p>
-          <p className="text-xs text-gray-500 mt-1">创业课程 / 创业者社群 / 商业计划评估</p>
+        <div className="bg-[#0045c4]/5 rounded-2xl p-4 border border-[#0045c4]/10">
+          <p className="text-xs text-slate-500 mb-1">发现更多</p>
+          <p className="text-sm font-semibold text-slate-800">博创园 · 创业者成长平台</p>
+          <p className="text-xs text-slate-500 mt-1">创业课程 / 创业者社群 / 商业计划评估</p>
         </div>
       </div>
     </div>

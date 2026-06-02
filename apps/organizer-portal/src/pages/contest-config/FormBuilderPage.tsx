@@ -5,15 +5,27 @@ import { nanoid } from 'nanoid'
 import { Lock } from 'lucide-react'
 import { FormBuilder, useFormBuilderStore } from '@bochuangyuan/ui'
 import { formBuilderApi } from '@bochuangyuan/api'
-import type { FormSchema, ReviewRuleSchema, OrganizerCompetition } from '@bochuangyuan/types'
+import type { FormSchema, ReviewRuleSchema, CompetitionStatus } from '@bochuangyuan/types'
 
-// Statuses where the form can no longer be edited
-const LOCKED_STATUSES: OrganizerCompetition['status'][] = ['open', 'reviewing', 'closed', 'finished']
+const LOCKED_STATUSES: CompetitionStatus[] = ['Registering', 'Ongoing', 'Ended']
 
-// TODO: replace with fetchCompetition(id) when backend is ready
-const MOCK_COMPETITIONS: Pick<OrganizerCompetition, 'competitionId' | 'status' | 'name'>[] = [
-  { competitionId: 'comp-1', status: 'reviewing', name: '2024 全国大学生创业大赛' },
-  { competitionId: 'comp-2', status: 'open',      name: '2024 博创杯双创大赛' },
+const STATUS_LABEL: Record<CompetitionStatus, string> = {
+  Draft:       '草稿',
+  Unpublished: '待发布',
+  Registering: '报名中',
+  Ongoing:     '进行中',
+  Ended:       '已结束',
+}
+
+interface CompetitionMeta {
+  competitionId: string
+  status: CompetitionStatus
+  name: string
+}
+
+const MOCK_COMPETITIONS: CompetitionMeta[] = [
+  { competitionId: 'comp-1', status: 'Ongoing',     name: '2024 全国大学生创业大赛' },
+  { competitionId: 'comp-2', status: 'Registering', name: '2024 博创杯双创大赛' },
 ]
 
 const DEFAULT_SCHEMA = (contestId: string): FormSchema => ({
@@ -21,9 +33,9 @@ const DEFAULT_SCHEMA = (contestId: string): FormSchema => ({
   name: '报名表单',
   contestId,
   fields: [
-    { id: nanoid(), type: 'text',     label: '项目名称',   required: true },
-    { id: nanoid(), type: 'text',     label: '联系人',     required: true },
-    { id: nanoid(), type: 'text',     label: '联系电话',   required: true, placeholder: '请输入手机号' },
+    { id: nanoid(), type: 'text',     label: '项目名称', required: true },
+    { id: nanoid(), type: 'text',     label: '联系人',   required: true },
+    { id: nanoid(), type: 'text',     label: '联系电话', required: true, placeholder: '请输入手机号' },
     {
       id: nanoid(),
       type: 'select',
@@ -45,7 +57,7 @@ export default function FormBuilderPage() {
   const { id: contestId } = useParams<{ id: string }>()
   const schemaRef = useRef<FormSchema | null>(null)
   const isDirty = useFormBuilderStore((s) => s.isDirty)
-  const [competition, setCompetition] = useState<Pick<OrganizerCompetition, 'competitionId' | 'status' | 'name'> | null>(null)
+  const [competition, setCompetition] = useState<CompetitionMeta | null>(null)
 
   const readOnly = competition ? LOCKED_STATUSES.includes(competition.status) : false
 
@@ -57,7 +69,6 @@ export default function FormBuilderPage() {
 
   useEffect(() => {
     if (!contestId) return
-    // TODO: API — replace with fetchCompetition(contestId)
     const comp = MOCK_COMPETITIONS.find((c) => c.competitionId === contestId) ?? null
     setCompetition(comp)
 
@@ -86,7 +97,7 @@ export default function FormBuilderPage() {
         {readOnly && competition && (
           <div className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-amber-50 border border-amber-200 text-amber-700 text-sm font-semibold">
             <Lock className="w-4 h-4" />
-            赛事已处于「{statusLabel(competition.status)}」状态，表单不可再编辑
+            赛事已处于「{STATUS_LABEL[competition.status]}」状态，表单不可再编辑
           </div>
         )}
       </div>
@@ -101,15 +112,4 @@ export default function FormBuilderPage() {
       </div>
     </div>
   )
-}
-
-function statusLabel(status: OrganizerCompetition['status']): string {
-  const map: Record<OrganizerCompetition['status'], string> = {
-    draft:     '草稿',
-    open:      '开放报名',
-    reviewing: '评审中',
-    closed:    '已结束',
-    finished:  '已完成',
-  }
-  return map[status]
 }

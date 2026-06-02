@@ -1,40 +1,49 @@
 @import "tailwindcss";
 
-@layer base {
-  * {
-    box-sizing: border-box;
-  }
+@theme {
+  --color-brand-blue: #0045c4;
+  --color-brand-blue-2: #003ba8;
+  --color-brand-ink: #0a1733;
+  --color-brand-paper: #f6f7fb;
+  --font-sans: "Inter", "Noto Sans SC", system-ui, sans-serif;
+  --font-serif: "Source Serif 4", "Noto Serif SC", serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+}
 
+@layer base {
+  * { box-sizing: border-box; }
   body {
-    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+    font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    background-color: #f9fafb;
+    background-color: #f6f7fb;
   }
 }
 
 @layer utilities {
-  .font-display {
-    font-family: "SF Pro Display", -apple-system, sans-serif;
-  }
-
-  .text-report {
-    font-size: 18px;
-    line-height: 1.8;
-    color: #2d3748;
-  }
-
-  .animate-pulse-slow {
-    animation: pulse 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  /* Deep ink hero — brand-blue radial glow + dotted grid */
+  .ink-blue {
+    background-color: #0a1733;
+    background-image:
+      radial-gradient(80% 60% at 20% 0%, rgba(0, 69, 196, 0.55) 0%, rgba(10, 23, 51, 0) 60%),
+      radial-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px);
+    background-size: auto, 24px 24px;
   }
 }
 
-/* Typewriter cursor */
+/* AI report body text */
+.text-report {
+  font-size: 17px;
+  line-height: 1.85;
+  color: #334155;
+}
+
+/* Typewriter cursor — recolored to brand-blue */
 .typewriter-cursor {
   display: inline-block;
   width: 2px;
   height: 1.1em;
-  background-color: #5b5fed;
+  background-color: #0045c4;
   margin-left: 2px;
   vertical-align: text-bottom;
   animation: blink 1s step-end infinite;
@@ -45,7 +54,7 @@
   50% { opacity: 0; }
 }
 
-/* Slide transition */
+/* Slide transitions */
 .slide-enter {
   transform: translateX(100%);
   opacity: 0;
@@ -65,26 +74,16 @@
   transition: transform 300ms ease, opacity 300ms ease;
 }
 
-/* Gradient backgrounds */
-.bg-brand-gradient {
-  background: linear-gradient(135deg, #5b5fed 0%, #8b5cf6 100%);
-}
-
-.bg-result-gradient {
-  background: linear-gradient(180deg, #5b5fed 0%, #8b5cf6 40%, #f9fafb 100%);
-}
-
-/* Glow animation for loading */
+/* Soft brand-blue glow — for result CTA */
 @keyframes glow {
-  0%, 100% { box-shadow: 0 0 20px rgba(91, 95, 237, 0.3); }
-  50% { box-shadow: 0 0 40px rgba(91, 95, 237, 0.6), 0 0 60px rgba(139, 92, 246, 0.3); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(0, 69, 196, 0.3); }
+  50% { box-shadow: 0 0 20px 4px rgba(0, 69, 196, 0.2); }
 }
 
 .animate-glow {
   animation: glow 2s ease-in-out infinite;
 }
 
-/* Fade in animation */
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(16px); }
   to { opacity: 1; transform: translateY(0); }

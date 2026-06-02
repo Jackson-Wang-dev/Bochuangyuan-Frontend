@@ -22,7 +22,7 @@ export const useProjectStore = create<ProjectState>()((set) => ({
     set((state) => ({
       projects: state.projects.map((p) =>
         p.projectId === projectId
-          ? { ...p, versions: [...p.versions, version] }
+          ? { ...p, versions: [...(p.versions ?? []), version] }
           : p,
       ),
     })),
@@ -32,7 +32,7 @@ export const useProjectStore = create<ProjectState>()((set) => ({
         p.projectId === projectId
           ? {
               ...p,
-              versions: p.versions.map((v) =>
+              versions: (p.versions ?? []).map((v) =>
                 v.versionId === versionId
                   ? { ...v, status: 'locked' as const, submittedTo: competitionId }
                   : v,
