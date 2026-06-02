@@ -7,9 +7,12 @@ const AuthPage                = lazy(() => import('@/pages/auth'))
 const HomePage                = lazy(() => import('@/pages/home'))
 const ProfilePage             = lazy(() => import('@/pages/profile'))
 const ProjectListPage         = lazy(() => import('@/pages/project/list'))
-const ProjectEditorPage       = lazy(() => import('@/pages/project/editor'))
-const ProjectVersionPage      = lazy(() => import('@/pages/project/version'))
-const ProjectApplyPage        = lazy(() => import('@/pages/project/apply'))
+const ProjectNewPage              = lazy(() => import('@/pages/project/new'))
+const ProjectDashboardPage        = lazy(() => import('@/pages/project/dashboard'))
+const ProjectRegistrationPage     = lazy(() => import('@/pages/project/registration'))
+const ProjectEditorPage           = lazy(() => import('@/pages/project/editor'))
+const ProjectVersionPage          = lazy(() => import('@/pages/project/version'))
+const ProjectApplyPage            = lazy(() => import('@/pages/project/apply'))
 const EnterpriseInfoPage      = lazy(() => import('@/pages/enterprise/info'))
 const EnterpriseHonorPage     = lazy(() => import('@/pages/enterprise/honor'))
 const EnterpriseIpPage        = lazy(() => import('@/pages/enterprise/ip'))
@@ -71,10 +74,13 @@ export const router = createBrowserRouter([
           { path: 'home',                     element: <HomePage /> },
           { path: 'profile',                  element: <ProfilePage /> },
           { path: 'project',                  element: <ProjectListPage /> },
-          { path: 'project/bp',               element: <ProjectEditorPage /> },
-          { path: 'project/:id/editor',       element: <ProjectEditorPage /> },
-          { path: 'project/:id/versions',     element: <ProjectVersionPage /> },
-          { path: 'project/:id/apply',        element: <ProjectApplyPage /> },
+          { path: 'project/new',                        element: <ProjectNewPage /> },
+          { path: 'project/bp',                         element: <ProjectEditorPage /> },
+          { path: 'project/:id',                        element: <ProjectDashboardPage /> },
+          { path: 'project/:id/registration/:regId',    element: <ProjectRegistrationPage /> },
+          { path: 'project/:id/editor',                 element: <ProjectEditorPage /> },
+          { path: 'project/:id/versions',               element: <ProjectVersionPage /> },
+          { path: 'project/:id/apply',                  element: <ProjectApplyPage /> },
           { path: 'enterprise/info',          element: <EnterpriseInfoPage /> },
           { path: 'enterprise/honor',         element: <EnterpriseHonorPage /> },
           { path: 'enterprise/ip',            element: <EnterpriseIpPage /> },

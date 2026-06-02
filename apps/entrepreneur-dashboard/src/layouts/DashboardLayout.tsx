@@ -10,7 +10,6 @@ import {
   User,
   Bell,
   ChevronDown,
-  FileText,
   Search,
   HelpCircle,
   Globe,
@@ -49,7 +48,6 @@ const FLAT_NAV_ITEMS = [
   { to: '/home',             icon: LayoutDashboard, label: '首页' },
   { to: '/profile',          icon: User,            label: '个人档案' },
   { to: '/project',          icon: Briefcase,       label: '项目管理' },
-  { to: '/project/bp',       icon: FileText,        label: '在线编辑BP' },
   { to: '/enterprise/info',  icon: Building2,       label: '企业档案' },
   { to: '/materials',        icon: FolderOpen,      label: '材料库' },
   { to: '/ai-assessment',    icon: Sparkles,        label: 'AI 评估' },
@@ -269,11 +267,11 @@ export function DashboardLayout() {
       <div className="flex flex-1 overflow-hidden px-8 gap-8 mt-8 max-w-[1800px] mx-auto w-full pb-6">
         {/* Sidebar scrolls independently if nav items overflow */}
         <aside className="w-44 flex-shrink-0 space-y-0.5 overflow-y-auto">
-          {FLAT_NAV_ITEMS.slice(0, 5).map((item) => (
+          {FLAT_NAV_ITEMS.slice(0, 4).map((item) => (
             <NavItem key={item.to} {...item} />
           ))}
           <CompetitionNavGroup />
-          {FLAT_NAV_ITEMS.slice(5).map((item) => (
+          {FLAT_NAV_ITEMS.slice(4).map((item) => (
             <NavItem key={item.to} {...item} />
           ))}
         </aside>

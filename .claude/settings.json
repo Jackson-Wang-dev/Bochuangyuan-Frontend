@@ -83,7 +83,15 @@
       "Bash(pnpm --filter @bochuangyuan/api exec tsc --noEmit)",
       "Bash(Get-ChildItem -Path \"d:\\\\Bochuangyuan-Frontend\" -Directory)",
       "Bash(pnpm --filter specialist-window build)",
-      "Bash(pnpm --filter organizer-portal build)"
+      "Bash(pnpm --filter organizer-portal build)",
+      "Bash(Get-ChildItem -Path \"d:\\\\Bochuangyuan-Frontend\\\\apps\\\\entrepreneur-dashboard\" -Recurse -Exclude \"node_modules\" -Directory)",
+      "Bash(ConvertTo-Csv -NoTypeInformation)",
+      "Bash(Select-Object -Skip 1)",
+      "Bash(mkdir -p \"d:\\\\Bochuangyuan-Frontend\\\\apps\\\\entrepreneur-dashboard\\\\src\\\\mock\" \"d:\\\\Bochuangyuan-Frontend\\\\apps\\\\entrepreneur-dashboard\\\\src\\\\pages\\\\project\\\\dashboard\" \"d:\\\\Bochuangyuan-Frontend\\\\apps\\\\entrepreneur-dashboard\\\\src\\\\pages\\\\project\\\\new\")",
+      "Bash(pnpm --filter entrepreneur-dashboard build)"
+    ],
+    "additionalDirectories": [
+      "d:\\Bochuangyuan-Frontend\\apps\\entrepreneur-dashboard\\src"
     ]
   }
 }
