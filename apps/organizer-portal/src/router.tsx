@@ -2,35 +2,40 @@ import { lazy, Suspense } from 'react'
 import { createBrowserRouter, Navigate } from 'react-router-dom'
 import { OrganizerLayout } from '@/layouts/OrganizerLayout'
 
-const LoginPage             = lazy(() => import('@/pages/auth/Login'))
+const LoginPage              = lazy(() => import('@/pages/auth/Login'))
 // H02 赛事列表
-const CompetitionList       = lazy(() => import('@/pages/competition/List'))
+const CompetitionList        = lazy(() => import('@/pages/competition/List'))
 // H03 赛事详情
-const CompetitionDetail     = lazy(() => import('@/pages/competition/Detail/index'))
-const BasicInfoTab          = lazy(() => import('@/pages/competition/Detail/BasicInfo'))
+const CompetitionDetail      = lazy(() => import('@/pages/competition/Detail/index'))
+const PipelineTab            = lazy(() => import('@/pages/competition/Detail/Pipeline'))
+const BasicInfoTab           = lazy(() => import('@/pages/competition/Detail/BasicInfo'))
 const CompetitionProjectsTab = lazy(() => import('@/pages/competition/Detail/Projects'))
 // H04 新建/编辑
-const CompetitionCreate     = lazy(() => import('@/pages/competition/Create'))
-const CompetitionEdit       = lazy(() => import('@/pages/competition/Edit'))
+const CompetitionCreate      = lazy(() => import('@/pages/competition/Create'))
+const CompetitionEdit        = lazy(() => import('@/pages/competition/Edit'))
 // H06 评委名册
-const JudgesPage            = lazy(() => import('@/pages/judges/Management'))
+const JudgesPage             = lazy(() => import('@/pages/judges/Management'))
 // H07 报名管理
-const RegistrationListPage  = lazy(() => import('@/pages/competition/registrations/List'))
+const RegistrationListPage   = lazy(() => import('@/pages/competition/registrations/List'))
 // H08 资质审核
-const QualificationPage     = lazy(() => import('@/pages/competition/qualification/Review'))
+const QualificationPage      = lazy(() => import('@/pages/competition/qualification/Review'))
 // H09 绿色通道审核
-const GreenChannelPage      = lazy(() => import('@/pages/competition/green-channel/Review'))
+const GreenChannelPage       = lazy(() => import('@/pages/competition/green-channel/Review'))
 // H10~H12 评审管理 (Prelim / Semifinal / Final)
-const ReviewManagementPage  = lazy(() => import('@/pages/competition/review/Management'))
+const ReviewManagementPage   = lazy(() => import('@/pages/competition/review/Management'))
 // H13 获奖与奖项
-const AwardsPage            = lazy(() => import('@/pages/competition/awards/Management'))
+const AwardsPage             = lazy(() => import('@/pages/competition/awards/Management'))
 // H14 结算
-const SettlementPage        = lazy(() => import('@/pages/competition/settlement/Management'))
-// H15~H17 Ops — placeholders
-const Placeholder           = lazy(() => import('@/pages/Placeholder'))
+const SettlementPage         = lazy(() => import('@/pages/competition/settlement/Management'))
+// H15 通知管理
+const NotificationsPage      = lazy(() => import('@/pages/competition/notifications/Management'))
+// H16 赛事相册
+const AlbumPage              = lazy(() => import('@/pages/competition/album/Management'))
+// H17 赛程管理
+const SchedulePage           = lazy(() => import('@/pages/competition/schedule/Management'))
 // System
-const StaffManagement       = lazy(() => import('@/pages/staff/Management'))
-const OperationLog          = lazy(() => import('@/pages/logs/OperationLog'))
+const StaffManagement        = lazy(() => import('@/pages/staff/Management'))
+const OperationLog           = lazy(() => import('@/pages/logs/OperationLog'))
 
 function Spinner() {
   return (
@@ -69,7 +74,8 @@ export const router = createBrowserRouter([
           {
             element: <S><CompetitionDetail /></S>,
             children: [
-              { index: true, element: <Navigate to="basic-info" replace /> },
+              { index: true, element: <Navigate to="pipeline" replace /> },
+              { path: 'pipeline',   element: <S><PipelineTab /></S> },
               { path: 'basic-info', element: <S><BasicInfoTab /></S> },
               { path: 'projects',   element: <S><CompetitionProjectsTab /></S> },
             ],
@@ -92,10 +98,10 @@ export const router = createBrowserRouter([
           { path: 'awards',        element: <S><AwardsPage /></S> },
           // H14
           { path: 'settlement',    element: <S><SettlementPage /></S> },
-          // H15~H17 Ops placeholders
-          { path: 'notifications', element: <S><Placeholder title="通知管理" /></S> },
-          { path: 'album',         element: <S><Placeholder title="赛事相册" /></S> },
-          { path: 'schedule',      element: <S><Placeholder title="赛程管理" /></S> },
+          // H15~H17 Ops
+          { path: 'notifications', element: <S><NotificationsPage /></S> },
+          { path: 'album',         element: <S><AlbumPage /></S> },
+          { path: 'schedule',      element: <S><SchedulePage /></S> },
         ],
       },
 

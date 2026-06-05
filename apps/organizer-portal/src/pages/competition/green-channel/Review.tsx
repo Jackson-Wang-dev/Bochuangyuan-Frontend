@@ -5,6 +5,33 @@ import type { GreenChannelReview, GreenChannelResult } from '@bochuangyuan/types
 import { CheckCircle2, XCircle, FileText, ChevronDown, ChevronUp, Zap } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
+const MOCK_GC_REVIEWS: GreenChannelReview[] = [
+  {
+    gcId: 'gc-001', regId: 'reg-003',
+    materials: [
+      { key: '#', name: '国家级专利证书.pdf', size: 240000 },
+      { key: '#', name: '省级科技奖励证明.pdf', size: 180000 },
+      { key: '#', name: '项目路演 PPT.pdf', size: 3200000 },
+    ],
+  },
+  {
+    gcId: 'gc-002', regId: 'reg-009',
+    materials: [
+      { key: '#', name: '高新技术企业认定证书.pdf', size: 150000 },
+      { key: '#', name: '天使轮融资证明.pdf', size: 90000 },
+    ],
+  },
+  {
+    gcId: 'gc-003', regId: 'reg-005',
+    materials: [
+      { key: '#', name: '科技部项目立项证明.pdf', size: 200000 },
+    ],
+    result: 'Pass',
+    comment: '材料完整，项目质量高，直接晋级半决赛。',
+    directToSemifinal: true,
+  },
+]
+
 export default function GreenChannelReviewPage() {
   const { id: competitionId } = useParams<{ id: string }>()
   const [reviews, setReviews] = useState<GreenChannelReview[]>([])
@@ -16,9 +43,9 @@ export default function GreenChannelReviewPage() {
   useEffect(() => {
     if (!competitionId) return
     greenChannelApi.list(competitionId).then((list) => {
-      setReviews(list)
+      setReviews(list.length > 0 ? list : MOCK_GC_REVIEWS)
       setLoading(false)
-    }).catch(() => setLoading(false))
+    }).catch(() => { setReviews(MOCK_GC_REVIEWS); setLoading(false) })
   }, [competitionId])
 
   const handleReview = async (regId: string, result: GreenChannelResult) => {

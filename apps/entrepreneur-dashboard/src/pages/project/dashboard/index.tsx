@@ -1,354 +1,577 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
-  ArrowLeft, Trophy, Users, Zap, Award, TrendingUp,
-  Clock, ChevronRight, ChevronDown, CheckCircle2, XCircle, AlertCircle, RotateCcw,
-  FileText, Pencil, Plus, X, Save, Check, CheckSquare, Square,
+  ArrowLeft, Trophy, Pencil, ChevronDown, Clock, Brain, X, Save, Eye, Copy, FileText,
+  RotateCcw, Info, Sparkles, Loader2, ArrowLeftRight, ShieldCheck, ShieldAlert, Shield, Upload,
 } from 'lucide-react'
 import {
   RadarChart, PolarGrid, PolarAngleAxis, Radar, ResponsiveContainer,
-  LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, Legend,
 } from 'recharts'
 import { useProjectDashboardStore } from '@/store/projectDashboardStore'
+import type {
+  Project, CollectionItem, FieldChange, Applicant,
+  TeamMember, ProjectStage, OrgHonor, RegistrationRecord, RegistrationStatus,
+  ProjectEvent, ProjectSnapshotData, ProjectSnapshot, VerifiableField, VerificationStatusValue,
+} from '@/types/project'
+import { deriveProjectSnapshot, radarSnapshotToChartData } from '@/utils/projectMetrics'
+import { computeProjectDiff } from '@/utils/projectDiff'
+import { getAIGrowthService } from '@/services/aiService'
+import { verificationService, VERIFIABLE_FIELD_LABELS } from '@/services/verificationService'
+import ImportModal from '@/pages/project/dashboard/ImportModal'
+import RepeatableCollection from '@/components/RepeatableCollection'
 import {
-  projectToRadar, snapshotToRadar, formatTimestamp,
-  type ProjectV2, type RegistrationInstance, type ProjectEvent,
-  type FieldChange, type MaturityLevel,
-} from '@/mock/projectMock'
+  TEAM_MEMBER_SCHEMA, EDUCATION_SCHEMA, WORK_SCHEMA, MAJOR_PROJECT_SCHEMA,
+  PAPER_SCHEMA, PATENT_SCHEMA, SOFTWARE_COPYRIGHT_SCHEMA, PRODUCT_SCHEMA,
+  AWARD_SCHEMA, BOOK_SCHEMA, CONFERENCE_REPORT_SCHEMA, ACADEMIC_POSITION_SCHEMA,
+  FOUNDED_COMPANY_SCHEMA, PROJECT_STAGE_SCHEMA, ORG_HONOR_SCHEMA,
+} from '@/types/collectionSchemas'
 import { cn } from '@/lib/utils'
 
-// ── Constants ─────────────────────────────────────────────────────────────────
+// ── Rich diff renderers ───────────────────────────────────────────────────────
 
-const MATURITY_OPTIONS: MaturityLevel[] = ['概念', '原型', '小试', '中试', '量产']
-const TRACKS = ['医疗健康', '新能源', '智慧城市', '人工智能', '智慧物流', '先进制造', '农业科技', '其他']
+function FieldChangeDiff({ c, inline = false }: { c: FieldChange; inline?: boolean }) {
+  const [expanded, setExpanded] = useState(false)
 
-const STATUS_ICON: Record<string, React.ReactNode> = {
-  '待审核': <AlertCircle className="w-4 h-4 text-amber-500" />,
-  '通过':   <CheckCircle2 className="w-4 h-4 text-emerald-500" />,
-  '淘汰':   <XCircle className="w-4 h-4 text-red-400" />,
-  '已撤回': <RotateCcw className="w-4 h-4 text-slate-400" />,
-}
-const STATUS_COLOR: Record<string, string> = {
-  '待审核': 'bg-amber-50 text-amber-600',
-  '通过':   'bg-emerald-50 text-emerald-600',
-  '淘汰':   'bg-red-50 text-red-500',
-  '已撤回': 'bg-slate-100 text-slate-500',
-}
+  if (c.diffType === 'scalar') {
+    return (
+      <div className="text-xs leading-relaxed">
+        <span className="font-semibold text-slate-600">{c.label}：</span>
+        <span className="line-through text-red-400 mr-1">{c.oldValue}</span>
+        <span className="text-slate-400 mx-1">→</span>
+        <span className="text-emerald-600 font-semibold">{c.newValue}</span>
+      </div>
+    )
+  }
 
-// Fields that appear in change events and support selective rollback
-const ROLLBACKABLE_FIELDS = new Set([
-  'teamSize', 'fundingAmount', 'patentCount', 'maturityLevel', 'businessScope',
-  'displayName', 'officialName', 'track', 'coreTech', 'relatedEnterprise', 'teamLead',
-])
-
-const MOD_COLLAPSE_THRESHOLD = 3  // show first 1, fold the rest if run length ≥ this
-
-// Groups a newest-first event list into interleaved: 报名 singletons and 维护编辑 runs.
-type TimelineGroup = ProjectEvent | ProjectEvent[]
-function groupTimeline(events: ProjectEvent[]): TimelineGroup[] {
-  const result: TimelineGroup[] = []
-  let run: ProjectEvent[] = []
-  for (const ev of events) {
-    if (ev.type === '报名') {
-      if (run.length > 0) { result.push([...run]); run = [] }
-      result.push(ev)
-    } else {
-      run.push(ev)
+  if (c.diffType === 'text') {
+    // Count distinct edit groups (contiguous non-unchanged runs)
+    let groups = 0
+    let wasUnchanged = true
+    for (const seg of c.segments) {
+      if (seg.type !== 'unchanged') { if (wasUnchanged) groups++; wasUnchanged = false }
+      else wasUnchanged = true
     }
-  }
-  if (run.length > 0) result.push(run)
-  return result
-}
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+    const totalLen = c.segments.reduce((s, seg) => s + seg.text.length, 0)
+    const isLong = inline && totalLen > 200
 
-function computeChanges(old: ProjectV2, patch: Partial<ProjectV2>): FieldChange[] {
-  const changes: FieldChange[] = []
-
-  type NumericKey = 'teamSize' | 'fundingAmount' | 'patentCount'
-  const numerics: { key: NumericKey; label: string; fmt: (n: number) => string }[] = [
-    { key: 'teamSize',      label: '团队规模', fmt: (n) => `${n} 人` },
-    { key: 'fundingAmount', label: '融资额',   fmt: (n) => n === 0 ? '未融资' : `${n} 万` },
-    { key: 'patentCount',   label: '专利数',   fmt: (n) => `${n} 项` },
-  ]
-  for (const f of numerics) {
-    const nv = patch[f.key] as number | undefined
-    if (nv === undefined || nv === old[f.key]) continue
-    changes.push({ field: f.key, label: f.label, oldValue: f.fmt(old[f.key]), newValue: f.fmt(nv) })
-  }
-
-  if (patch.maturityLevel && patch.maturityLevel !== old.maturityLevel) {
-    changes.push({ field: 'maturityLevel', label: '成熟度', oldValue: old.maturityLevel, newValue: patch.maturityLevel })
-  }
-
-  if (patch.businessScope) {
-    const o = [...old.businessScope].sort().join(',')
-    const n = [...patch.businessScope].sort().join(',')
-    if (o !== n) {
-      changes.push({
-        field: 'businessScope', label: '业务范围',
-        oldValue: old.businessScope.join(', ') || '—',
-        newValue: patch.businessScope.join(', ') || '—',
-      })
+    let visibleSegments = c.segments
+    if (isLong && !expanded) {
+      let chars = 0
+      const truncated: typeof c.segments = []
+      for (const seg of c.segments) {
+        if (chars >= 200) break
+        const rem = 200 - chars
+        if (seg.text.length > rem) {
+          truncated.push({ type: seg.type, text: seg.text.slice(0, rem) + '…' })
+          chars = 200
+        } else {
+          truncated.push(seg)
+          chars += seg.text.length
+        }
+      }
+      visibleSegments = truncated
     }
+
+    return (
+      <div className="text-xs">
+        <div className="flex items-center gap-2 mb-1 flex-wrap">
+          <span className="font-semibold text-slate-600">{c.label}</span>
+          <span className="text-slate-400">（{groups} 处修改）</span>
+          {isLong && (
+            <button
+              onClick={(e) => { e.stopPropagation(); setExpanded((v) => !v) }}
+              className="text-brand-blue hover:underline text-[10px]"
+            >
+              {expanded ? '收起' : '展开全文'}
+            </button>
+          )}
+        </div>
+        <span className="leading-relaxed">
+          {visibleSegments.map((seg, i) => (
+            <span key={i} className={cn(
+              seg.type === 'added'     && 'bg-emerald-100 text-emerald-700',
+              seg.type === 'removed'   && 'bg-red-100 text-red-500 line-through',
+              seg.type === 'unchanged' && 'text-slate-500',
+            )}>
+              {seg.text}
+            </span>
+          ))}
+        </span>
+      </div>
+    )
   }
 
-  const identityKeys: { key: keyof ProjectV2; label: string }[] = [
-    { key: 'displayName',      label: '展示名' },
-    { key: 'officialName',     label: '正式申报名' },
-    { key: 'track',            label: '赛道' },
-    { key: 'coreTech',         label: '核心技术' },
-    { key: 'relatedEnterprise',label: '关联企业' },
-    { key: 'teamLead',         label: '团队负责人' },
-  ]
-  for (const f of identityKeys) {
-    const nv = patch[f.key] as string | undefined
-    if (nv === undefined) continue
-    const ov = String(old[f.key] ?? '')
-    if (nv !== ov) {
-      changes.push({ field: f.key as string, label: f.label, oldValue: ov || '—', newValue: nv || '—' })
-    }
+  // collection
+  const parts: string[] = []
+  if (c.added.length)    parts.push(`新增 ${c.added.length} 项`)
+  if (c.removed.length)  parts.push(`删除 ${c.removed.length} 项`)
+  if (c.modified.length) parts.push(`修改 ${c.modified.length} 项`)
+
+  return (
+    <div className="text-xs space-y-1">
+      <div>
+        <span className="font-semibold text-slate-600">{c.label}：</span>
+        <span className="text-slate-400">{parts.join('、') || '无变更'}</span>
+      </div>
+      <div className="pl-3 space-y-1 border-l-2 border-slate-100">
+        {c.added.map((s, i) => (
+          <div key={`a${i}`} className="flex items-center gap-1 text-emerald-600">
+            <span className="font-bold">+</span><span>{s}</span>
+          </div>
+        ))}
+        {c.removed.map((s, i) => (
+          <div key={`r${i}`} className="flex items-center gap-1 text-red-400 line-through">
+            <span className="font-bold">−</span><span>{s}</span>
+          </div>
+        ))}
+        {c.modified.map((m) => (
+          <div key={m.itemId} className="space-y-0.5">
+            <span className="font-semibold text-slate-500">{m.itemSummary}：</span>
+            {m.fieldChanges.map((fc, fi) => (
+              <span key={fi} className="ml-1 inline-block">
+                {fc.label}&nbsp;
+                <span className="line-through text-red-400">{fc.oldValue}</span>
+                <span className="text-slate-400 mx-0.5">→</span>
+                <span className="text-emerald-600">{fc.newValue}</span>
+              </span>
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ── Event detail modal ────────────────────────────────────────────────────────
+
+function EventDetailModal({
+  event,
+  snapshot,
+  onClose,
+  onRollback,
+}: {
+  event: ProjectEvent
+  snapshot: ProjectSnapshot | undefined
+  onClose: () => void
+  onRollback: () => void
+}) {
+  const [confirmRollback, setConfirmRollback] = useState(false)
+  const canRollback = !!snapshot && event.type !== '报名'
+
+  return (
+    <div
+      className="fixed inset-0 bg-black/40 z-50 flex items-end sm:items-center justify-center p-2 sm:p-4"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded-2xl shadow-xl w-full max-w-xl max-h-[90vh] flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-start justify-between px-6 py-4 border-b border-slate-100 flex-shrink-0 gap-4">
+          <div>
+            <p className="font-bold text-slate-800">{event.description}</p>
+            <p className="text-xs text-slate-400 mt-0.5 flex items-center gap-1">
+              <Clock className="w-3 h-3" />
+              {event.timestamp.slice(0, 16).replace('T', ' ')}
+              <span className={cn(
+                'ml-2 px-1.5 py-0.5 rounded text-[10px] font-bold',
+                event.type === '报名'  ? 'bg-brand-blue/10 text-brand-blue' :
+                event.type === '回退'  ? 'bg-amber-100 text-amber-600' :
+                                         'bg-slate-100 text-slate-500',
+              )}>
+                {event.type}
+              </span>
+            </p>
+          </div>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 transition-colors flex-shrink-0">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Change list + snapshot dimensions */}
+        <div className="overflow-y-auto flex-1 px-6 py-4 space-y-4">
+          {event.changes.length === 0 ? (
+            <p className="text-sm text-slate-400 py-2 text-center">此事件无字段变更记录</p>
+          ) : (
+            <div className="space-y-4">
+              {event.changes.map((c, i) => (
+                <div key={i} className="pb-4 border-b border-slate-50 last:border-0 last:pb-0">
+                  <FieldChangeDiff c={c} />
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Snapshot radar snapshot — "快照对比" section */}
+          {snapshot && (
+            <div className="pt-2 border-t border-slate-100">
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">此版本快照维度</p>
+              <div className="grid grid-cols-3 gap-2">
+                {([
+                  ['团队规模', `${snapshot.radar.teamSize} 人`],
+                  ['专利数',   `${snapshot.radar.patentCount} 件`],
+                  ['软著数',   `${snapshot.radar.softwareCopyrightCount} 件`],
+                  ['论文数',   `${snapshot.radar.paperCount} 篇`],
+                  ['融资额',   snapshot.radar.totalFunding > 0 ? `${snapshot.radar.totalFunding} 万` : '—'],
+                  ['成熟度',   `${snapshot.radar.maturityScore} / 100`],
+                ] as [string, string][]).map(([label, value]) => (
+                  <div key={label} className="bg-slate-50 rounded-xl p-2.5">
+                    <p className="text-[10px] text-slate-400">{label}</p>
+                    <p className="text-sm font-bold text-slate-700 mt-0.5">{value}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Rollback footer */}
+        {canRollback && (
+          <div className="flex items-center justify-between gap-3 px-6 py-4 border-t border-slate-100 flex-shrink-0">
+            {confirmRollback ? (
+              <>
+                <p className="text-xs text-slate-500">确认将项目数据回退到此版本？</p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setConfirmRollback(false)}
+                    className="px-3 py-1.5 text-xs border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50"
+                  >
+                    取消
+                  </button>
+                  <button
+                    onClick={onRollback}
+                    className="px-3 py-1.5 text-xs bg-amber-500 text-white rounded-lg font-bold hover:bg-amber-600"
+                  >
+                    确认回退
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="text-xs text-slate-400">可将项目数据回退到此快照版本</p>
+                <button
+                  onClick={() => setConfirmRollback(true)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 transition-colors"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  回退到此版本
+                </button>
+              </>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ── Verification UI ───────────────────────────────────────────────────────────
+
+function VerificationBadge({ status }: { status: VerificationStatusValue }) {
+  if (status === 'verified') {
+    return (
+      <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 rounded px-1.5 py-0.5">
+        <ShieldCheck className="w-2.5 h-2.5" /> 已验证
+      </span>
+    )
   }
-
-  return changes
-}
-
-function parseRollbackValue(field: string, displayValue: string): unknown {
-  switch (field) {
-    case 'teamSize':
-    case 'patentCount':
-      return parseInt(displayValue.replace(/\D/g, '')) || 0
-    case 'fundingAmount':
-      if (displayValue === '未融资') return 0
-      return parseFloat(displayValue.replace(/[^0-9.]/g, '')) || 0
-    case 'businessScope':
-      if (!displayValue || displayValue === '—') return []
-      return displayValue.split(/[,，]+/).map((s: string) => s.trim()).filter(Boolean)
-    default:
-      return displayValue === '—' ? '' : displayValue
+  if (status === 'pending') {
+    return (
+      <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-amber-600 bg-amber-50 border border-amber-200 rounded px-1.5 py-0.5">
+        <Shield className="w-2.5 h-2.5" /> 审核中
+      </span>
+    )
   }
+  return (
+    <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-slate-400 bg-slate-50 border border-slate-200 rounded px-1.5 py-0.5">
+      <ShieldAlert className="w-2.5 h-2.5" /> 未验证
+    </span>
+  )
 }
 
-function buildTrendData(project: ProjectV2) {
-  return [...project.events]
-    .sort((a, b) => a.timestamp.localeCompare(b.timestamp))
-    .map((ev) => ({
-      date: formatTimestamp(ev.timestamp).slice(5),
-      fullDate: formatTimestamp(ev.timestamp),
-      teamSize: ev.snapshot.teamSize,
-      funding: ev.snapshot.fundingAmount,
-      patents: ev.snapshot.patentCount,
-    }))
+// ── Layout primitives ─────────────────────────────────────────────────────────
+
+function SecTitle({ className, children }: { className?: string; children: React.ReactNode }) {
+  return (
+    <p className={cn('text-xs font-bold text-slate-400 uppercase tracking-widest', className)}>
+      {children}
+    </p>
+  )
 }
 
-// ── Edit form types ───────────────────────────────────────────────────────────
-
-interface EditForm {
-  displayName: string; officialName: string; track: string; coreTech: string
-  relatedEnterprise: string; teamLead: string
-  teamSize: string; fundingAmount: string; patentCount: string
-  maturityLevel: MaturityLevel
-  businessScopeInput: string; businessScope: string[]
-  briefIntro: string; leaderInfo: string; teamMembersDesc: string
-  honors: string; papers: string; personalStatement: string
+function SubTitle({ children }: { children: React.ReactNode }) {
+  return <p className="text-xs font-semibold text-slate-500 mb-2">{children}</p>
 }
 
-function initEditForm(p: ProjectV2): EditForm {
-  return {
-    displayName: p.displayName, officialName: p.officialName,
-    track: p.track, coreTech: p.coreTech,
-    relatedEnterprise: p.relatedEnterprise, teamLead: p.teamLead,
-    teamSize: String(p.teamSize), fundingAmount: String(p.fundingAmount), patentCount: String(p.patentCount),
-    maturityLevel: p.maturityLevel, businessScopeInput: '', businessScope: [...p.businessScope],
-    briefIntro: p.briefIntro, leaderInfo: p.leaderInfo, teamMembersDesc: p.teamMembersDesc,
-    honors: p.honors, papers: p.papers, personalStatement: p.personalStatement,
-  }
+function InfoRow({ label, value, className }: { label: string; value?: string | null; className?: string }) {
+  return (
+    <div className={className}>
+      <span className="text-xs text-slate-400">{label}</span>
+      <p className="text-sm font-semibold text-slate-700 mt-0.5 truncate">{value || '—'}</p>
+    </div>
+  )
 }
 
-function editFormToPatch(f: EditForm): Partial<ProjectV2> {
-  return {
-    displayName: f.displayName.trim(), officialName: f.officialName.trim(),
-    track: f.track, coreTech: f.coreTech.trim(),
-    relatedEnterprise: f.relatedEnterprise.trim(), teamLead: f.teamLead.trim(),
-    teamSize: parseInt(f.teamSize) || 0,
-    fundingAmount: parseFloat(f.fundingAmount) || 0,
-    patentCount: parseInt(f.patentCount) || 0,
-    maturityLevel: f.maturityLevel, businessScope: f.businessScope,
-    briefIntro: f.briefIntro.trim(), leaderInfo: f.leaderInfo.trim(),
-    teamMembersDesc: f.teamMembersDesc.trim(), honors: f.honors.trim(),
-    papers: f.papers.trim(), personalStatement: f.personalStatement.trim(),
-  }
+function TextBlock({ label, value }: { label: string; value?: string }) {
+  if (!value) return null
+  return (
+    <div>
+      <p className="text-xs font-bold text-slate-500 mb-1">{label}</p>
+      <p className="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">{value}</p>
+    </div>
+  )
 }
 
-// ── Shared input classes ──────────────────────────────────────────────────────
+function NumStat({ label, value, unit = '' }: { label: string; value: number; unit?: string }) {
+  return (
+    <div className="bg-slate-50 rounded-xl p-3">
+      <p className="text-xs text-slate-500 leading-snug">{label}</p>
+      <p className="text-xl font-black text-slate-800 mt-1">
+        {value !== 0 ? value.toLocaleString() : '—'}
+        {value !== 0 && unit && <span className="text-sm font-medium text-slate-400 ml-1">{unit}</span>}
+      </p>
+    </div>
+  )
+}
+
+// ── In-page navigation ────────────────────────────────────────────────────────
+
+const NAV_SECTIONS = [
+  { id: 'eval',         label: '成长雷达' },
+  { id: 'identity',     label: '项目身份' },
+  { id: 'applicant',    label: '申报人' },
+  { id: 'team',         label: '项目团队' },
+  { id: 'proj-detail',  label: '项目详情' },
+  { id: 'investment',   label: '投入预测' },
+  { id: 'org',          label: '用人单位' },
+  { id: 'registrations',label: '报名记录' },
+  { id: 'timeline',     label: '时间线' },
+]
+
+function scrollToSection(id: string) {
+  const el = document.getElementById(id)
+  if (!el) return
+  el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  el.classList.remove('section-glow')
+  void el.offsetWidth // force reflow to restart animation
+  el.classList.add('section-glow')
+}
+
+function InPageNav() {
+  return (
+    <nav className="w-28 flex-shrink-0 sticky top-6 hidden xl:block">
+      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 px-2">本页导航</p>
+      <ul className="space-y-0.5">
+        {NAV_SECTIONS.map((s) => (
+          <li key={s.id}>
+            <button
+              onClick={() => scrollToSection(s.id)}
+              className="block w-full text-left text-xs text-slate-500 hover:text-brand-blue px-2 py-1.5 rounded-lg hover:bg-brand-blue/5 transition-colors"
+            >
+              {s.label}
+            </button>
+          </li>
+        ))}
+      </ul>
+    </nav>
+  )
+}
+
+// ── Registration table ────────────────────────────────────────────────────────
+
+const STATUS_CONFIG: Record<RegistrationStatus, { className: string }> = {
+  '草稿':       { className: 'bg-slate-100 text-slate-500' },
+  '待提交':     { className: 'bg-amber-100 text-amber-700' },
+  '待审核':     { className: 'bg-blue-100 text-blue-700' },
+  '审核通过':   { className: 'bg-green-100 text-green-700' },
+  '审核不通过': { className: 'bg-red-100 text-red-700' },
+  '已晋级':     { className: 'bg-emerald-100 text-emerald-700' },
+  '已淘汰':     { className: 'bg-red-100 text-red-700' },
+  '已撤回':     { className: 'bg-slate-100 text-slate-500' },
+}
+
+function RegistrationRow({ reg, projectId }: { reg: RegistrationRecord; projectId: string }) {
+  const navigate = useNavigate()
+  const sc = STATUS_CONFIG[reg.status]
+  const domainLabel =
+    reg.professionalDomain.leaf?.label ??
+    reg.professionalDomain.mid?.label ??
+    reg.professionalDomain.top?.label ??
+    '—'
+  const dateLabel = (reg.submittedAt ?? reg.applicationDate).slice(0, 10)
+
+  return (
+    <tr className="border-b border-slate-50 last:border-0 hover:bg-slate-50/50 transition-colors">
+      <td className="py-3 pr-4 align-top">
+        <p className="text-sm font-semibold text-slate-700 leading-tight">{reg.competitionName}</p>
+        <p className="text-xs text-slate-400 mt-0.5">{dateLabel}</p>
+      </td>
+      <td className="py-3 pr-4 align-middle">
+        <p className="text-sm text-slate-600 max-w-[140px] truncate">{reg.declarationName}</p>
+      </td>
+      <td className="py-3 pr-4 align-middle">
+        <span className="text-xs text-slate-500 bg-slate-50 px-2 py-0.5 rounded-full whitespace-nowrap">
+          {domainLabel}
+        </span>
+      </td>
+      <td className="py-3 pr-4 align-middle">
+        <span className="text-sm font-semibold text-slate-700">{reg.memberCount}</span>
+        <span className="text-xs text-slate-400 ml-0.5">人</span>
+      </td>
+      <td className="py-3 pr-4 align-middle">
+        <span className={cn('text-xs font-bold px-2 py-0.5 rounded-full whitespace-nowrap', sc.className)}>
+          {reg.status}
+        </span>
+      </td>
+      <td className="py-3 pr-4 align-middle">
+        <button
+          onClick={() => navigate(`/competition/registrations/${reg.id}/green-channel`)}
+          className={cn(
+            'text-xs font-bold px-2.5 py-1 rounded-lg whitespace-nowrap transition-colors',
+            reg.greenChannelApplied
+              ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
+              : 'bg-brand-blue/10 text-brand-blue hover:bg-brand-blue/20',
+          )}
+        >
+          {reg.greenChannelApplied ? '已申请' : '申请'}
+        </button>
+      </td>
+      <td className="py-3 align-middle">
+        <div className="flex items-center gap-0.5">
+          <button
+            title="查看详情 & 导出申报书"
+            onClick={() => navigate(`/project/${projectId}/registration/${reg.id}`)}
+            className="p-1.5 text-slate-400 hover:text-brand-blue hover:bg-brand-blue/10 rounded-lg transition-colors"
+          >
+            <Eye className="w-3.5 h-3.5" />
+          </button>
+          <button title="复制报名（开发中）" disabled
+            className="p-1.5 text-slate-300 rounded-lg cursor-not-allowed">
+            <Copy className="w-3.5 h-3.5" />
+          </button>
+          <button title="预览申报书（开发中）" disabled
+            className="p-1.5 text-slate-300 rounded-lg cursor-not-allowed">
+            <FileText className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      </td>
+    </tr>
+  )
+}
+
+// ── Edit project info modal ───────────────────────────────────────────────────
 
 const IC = 'w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/20 bg-white'
 const TC = `${IC} resize-none`
 
-// ── EditProjectModal ──────────────────────────────────────────────────────────
-
-function EditSectionTitle({ children }: { children: React.ReactNode }) {
-  return <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3 pt-1">{children}</p>
+interface EditForm {
+  declarationName: string; projectName: string; coreTech: string
+  projectBrief: string; projectBackground: string; projectContent: string
+  workBasis: string; expectedContribution: string; economicEfficiency: string
+  totalInvestmentForecast: string; alreadyInvestedByOrg: string
+  govSupportReceived: string; plannedInvestmentByOrg: string
 }
 
-function EditProjectModal({
+function EditProjectInfoModal({
   project,
   onClose,
   onSave,
 }: {
-  project: ProjectV2
+  project: Project
   onClose: () => void
-  onSave: (patch: Partial<ProjectV2>, changes: FieldChange[]) => void
+  onSave: (patch: Partial<Project>, description: string) => void
 }) {
-  const [form, setForm] = useState<EditForm>(() => initEditForm(project))
+  const [form, setForm] = useState<EditForm>({
+    declarationName: project.declarationName,
+    projectName: project.projectName,
+    coreTech: project.coreTech,
+    projectBrief: project.projectBrief,
+    projectBackground: project.projectBackground,
+    projectContent: project.projectContent,
+    workBasis: project.workBasis,
+    expectedContribution: project.expectedContribution,
+    economicEfficiency: project.economicEfficiency,
+    totalInvestmentForecast: project.totalInvestmentForecast > 0 ? String(project.totalInvestmentForecast) : '',
+    alreadyInvestedByOrg: project.alreadyInvestedByOrg > 0 ? String(project.alreadyInvestedByOrg) : '',
+    govSupportReceived: project.govSupportReceived > 0 ? String(project.govSupportReceived) : '',
+    plannedInvestmentByOrg: project.plannedInvestmentByOrg > 0 ? String(project.plannedInvestmentByOrg) : '',
+  })
+  const [description, setDescription] = useState('')
 
-  function sf(key: keyof EditForm, value: string) {
-    setForm((f) => ({ ...f, [key]: value }))
-  }
-  function addScope() {
-    const v = form.businessScopeInput.trim()
-    if (!v || form.businessScope.includes(v)) return
-    setForm((f) => ({ ...f, businessScope: [...f.businessScope, v], businessScopeInput: '' }))
-  }
-  function removeScope(s: string) {
-    setForm((f) => ({ ...f, businessScope: f.businessScope.filter((x) => x !== s) }))
+  function sf(key: keyof EditForm, val: string) {
+    setForm((f) => ({ ...f, [key]: val }))
   }
 
   function handleSave() {
-    const patch = editFormToPatch(form)
-    const changes = computeChanges(project, patch)
-    onSave(patch, changes)
+    onSave({
+      declarationName: form.declarationName.trim(),
+      projectName: form.projectName.trim(),
+      coreTech: form.coreTech.trim(),
+      projectBrief: form.projectBrief.trim(),
+      projectBackground: form.projectBackground.trim(),
+      projectContent: form.projectContent.trim(),
+      workBasis: form.workBasis.trim(),
+      expectedContribution: form.expectedContribution.trim(),
+      economicEfficiency: form.economicEfficiency.trim(),
+      totalInvestmentForecast: parseFloat(form.totalInvestmentForecast) || 0,
+      alreadyInvestedByOrg: parseFloat(form.alreadyInvestedByOrg) || 0,
+      govSupportReceived: parseFloat(form.govSupportReceived) || 0,
+      plannedInvestmentByOrg: parseFloat(form.plannedInvestmentByOrg) || 0,
+    }, description.trim())
   }
 
   return (
     <div className="fixed inset-0 bg-black/40 z-50 flex items-end sm:items-center justify-center p-2 sm:p-4" onClick={onClose}>
-      <div
-        className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header */}
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 flex-shrink-0">
-          <p className="font-bold text-slate-800">编辑项目</p>
+          <p className="font-bold text-slate-800">编辑项目信息</p>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600 transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Scrollable body */}
-        <div className="overflow-y-auto flex-1 px-6 py-4 space-y-6">
+        <div className="overflow-y-auto flex-1 px-6 py-4 space-y-5">
           {/* Identity */}
           <div>
-            <EditSectionTitle>项目身份</EditSectionTitle>
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">项目身份</p>
             <div className="space-y-3">
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-500">展示名 <span className="text-red-500">*</span></label>
-                  <input className={IC} value={form.displayName} onChange={(e) => sf('displayName', e.target.value)} />
+                  <label className="text-xs font-semibold text-slate-500">申报用名</label>
+                  <input className={IC} value={form.declarationName} onChange={(e) => sf('declarationName', e.target.value)} />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-500">正式申报用名</label>
-                  <input className={IC} value={form.officialName} onChange={(e) => sf('officialName', e.target.value)} />
+                  <label className="text-xs font-semibold text-slate-500">项目正式名称</label>
+                  <input className={IC} value={form.projectName} onChange={(e) => sf('projectName', e.target.value)} />
                 </div>
               </div>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-500">赛道 / 领域</label>
-                  <select className={IC} value={form.track} onChange={(e) => sf('track', e.target.value)}>
-                    <option value="">请选择</option>
-                    {TRACKS.map((t) => <option key={t} value={t}>{t}</option>)}
-                  </select>
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-500">核心技术 / 依托专利</label>
-                  <input className={IC} value={form.coreTech} onChange={(e) => sf('coreTech', e.target.value)} />
-                </div>
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-slate-500">核心技术</label>
+                <input className={IC} value={form.coreTech} onChange={(e) => sf('coreTech', e.target.value)} />
               </div>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-500">关联企业</label>
-                  <input className={IC} value={form.relatedEnterprise} onChange={(e) => sf('relatedEnterprise', e.target.value)} />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-500">团队负责人</label>
-                  <input className={IC} value={form.teamLead} onChange={(e) => sf('teamLead', e.target.value)} />
-                </div>
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-slate-500">
+                  项目简介 <span className="text-slate-400 font-normal">≤500字</span>
+                </label>
+                <textarea rows={3} className={TC} maxLength={500}
+                  value={form.projectBrief} onChange={(e) => sf('projectBrief', e.target.value)} />
+                <p className="text-right text-xs text-slate-400">{form.projectBrief.length}/500</p>
               </div>
             </div>
           </div>
 
-          {/* Growth dimensions */}
+          {/* Project content */}
           <div>
-            <EditSectionTitle>成长维度</EditSectionTitle>
-            <div className="space-y-3">
-              <div className="grid grid-cols-3 gap-3">
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-500">团队规模（人）</label>
-                  <input type="number" min={1} className={IC} value={form.teamSize} onChange={(e) => sf('teamSize', e.target.value)} />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-500">融资额（万元）</label>
-                  <input type="number" min={0} className={IC} value={form.fundingAmount} onChange={(e) => sf('fundingAmount', e.target.value)} />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-500">专利数（项）</label>
-                  <input type="number" min={0} className={IC} value={form.patentCount} onChange={(e) => sf('patentCount', e.target.value)} />
-                </div>
-              </div>
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-500">项目成熟度</label>
-                <div className="flex gap-2 flex-wrap">
-                  {MATURITY_OPTIONS.map((m) => (
-                    <button key={m} type="button"
-                      onClick={() => setForm((f) => ({ ...f, maturityLevel: m }))}
-                      className={cn(
-                        'px-3 py-1.5 rounded-full text-sm font-semibold border transition-all',
-                        form.maturityLevel === m ? 'border-brand-blue bg-brand-blue/8 text-brand-blue' : 'border-slate-200 text-slate-500 hover:border-slate-300',
-                      )}
-                    >
-                      {m}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-500">业务范围（标签）</label>
-                <div className="flex gap-2">
-                  <input className={cn(IC, 'flex-1')}
-                    value={form.businessScopeInput}
-                    onChange={(e) => sf('businessScopeInput', e.target.value)}
-                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addScope() } }}
-                    placeholder="输入后按 Enter 或点击 +"
-                  />
-                  <button type="button" onClick={addScope}
-                    className="px-3 py-2 bg-brand-blue/10 text-brand-blue rounded-xl text-sm hover:bg-brand-blue/15 transition-colors">
-                    <Plus className="w-4 h-4" />
-                  </button>
-                </div>
-                {form.businessScope.length > 0 && (
-                  <div className="flex gap-1.5 flex-wrap pt-1">
-                    {form.businessScope.map((s) => (
-                      <span key={s} className="flex items-center gap-1 px-2.5 py-0.5 bg-brand-blue/8 text-brand-blue rounded-full text-xs font-semibold">
-                        {s}
-                        <button onClick={() => removeScope(s)} className="hover:text-rose-500 transition-colors"><X className="w-3 h-3" /></button>
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Project details */}
-          <div>
-            <EditSectionTitle>项目详情</EditSectionTitle>
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">项目详情</p>
             <div className="space-y-3">
               {([
-                ['briefIntro',       '项目简介',         3],
-                ['leaderInfo',       '带头人信息',       2],
-                ['teamMembersDesc',  '团队成员',         2],
-                ['honors',           '荣誉获奖',         2],
-                ['papers',           '代表性著作 / 论文', 2],
-                ['personalStatement','个人陈述',         3],
+                ['projectBackground',    '项目背景意义',        4],
+                ['projectContent',       '项目实施内容',        4],
+                ['workBasis',            '工作基础和条件',      3],
+                ['expectedContribution', '预期贡献及验收指标',  3],
+                ['economicEfficiency',   '预期经济效益',        3],
               ] as [keyof EditForm, string, number][]).map(([key, label, rows]) => (
                 <div key={key} className="space-y-1">
                   <label className="text-xs font-semibold text-slate-500">{label}</label>
@@ -360,9 +583,40 @@ function EditProjectModal({
               ))}
             </div>
           </div>
+
+          {/* Investment */}
+          <div>
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">投入预测（万元）</p>
+            <div className="grid grid-cols-2 gap-3">
+              {([
+                ['totalInvestmentForecast', '项目总投入预测（5年）'],
+                ['alreadyInvestedByOrg',    '单位已投入'],
+                ['govSupportReceived',      '已获区县市支持'],
+                ['plannedInvestmentByOrg',  '单位计划投入（5年）'],
+              ] as [keyof EditForm, string][]).map(([key, label]) => (
+                <div key={key} className="space-y-1">
+                  <label className="text-xs font-semibold text-slate-500">{label}</label>
+                  <input type="number" min={0} className={IC}
+                    value={form[key] as string}
+                    onChange={(e) => sf(key, e.target.value)}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Description */}
+          <div className="border-t border-slate-100 pt-4">
+            <label className="text-xs font-bold text-slate-400 uppercase tracking-widest block mb-2">
+              本次更新备注
+            </label>
+            <textarea rows={2} className={TC}
+              placeholder="简述本次更新内容，留空则自动生成"
+              value={description} onChange={(e) => setDescription(e.target.value)}
+            />
+          </div>
         </div>
 
-        {/* Footer */}
         <div className="flex justify-end gap-3 px-6 py-4 border-t border-slate-100 flex-shrink-0">
           <button onClick={onClose}
             className="px-5 py-2.5 border border-slate-200 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50 transition-colors">
@@ -378,645 +632,853 @@ function EditProjectModal({
   )
 }
 
-// ── RollbackDialog ────────────────────────────────────────────────────────────
-
-function RollbackDialog({
-  event,
-  checked,
-  onToggle,
-  onConfirm,
-  onClose,
-}: {
-  event: ProjectEvent
-  checked: Set<string>
-  onToggle: (field: string) => void
-  onConfirm: () => void
-  onClose: () => void
-}) {
-  const rollbackable = (event.changes ?? []).filter((c) => ROLLBACKABLE_FIELDS.has(c.field))
-
-  return (
-    <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 space-y-4" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-start gap-3">
-          <div className="w-10 h-10 rounded-xl bg-rose-50 flex items-center justify-center flex-shrink-0">
-            <RotateCcw className="w-5 h-5 text-rose-500" />
-          </div>
-          <div>
-            <p className="font-bold text-slate-800">回退确认</p>
-            <p className="text-xs text-slate-400 mt-0.5">
-              将回退 <span className="font-semibold">{formatTimestamp(event.timestamp)}</span> 的维护编辑，勾选要恢复的字段
-            </p>
-          </div>
-          <button onClick={onClose} className="ml-auto text-slate-400 hover:text-slate-600 transition-colors flex-shrink-0">
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-
-        {rollbackable.length === 0 ? (
-          <p className="text-sm text-slate-400 text-center py-4">该事件没有可回退的字段</p>
-        ) : (
-          <div className="space-y-2">
-            {rollbackable.map((c) => {
-              const isChecked = checked.has(c.field)
-              return (
-                <button key={c.field} onClick={() => onToggle(c.field)}
-                  className={cn(
-                    'w-full text-left p-3 rounded-xl border-2 transition-all flex items-start gap-3',
-                    isChecked ? 'border-rose-300 bg-rose-50' : 'border-slate-200 hover:border-slate-300',
-                  )}
-                >
-                  <span className="mt-0.5 flex-shrink-0">
-                    {isChecked
-                      ? <CheckSquare className="w-4 h-4 text-rose-500" />
-                      : <Square className="w-4 h-4 text-slate-300" />}
-                  </span>
-                  <div className="flex-1 min-w-0 text-sm">
-                    <p className="font-semibold text-slate-700">{c.label}</p>
-                    <p className="text-xs text-slate-400 mt-0.5 flex items-center gap-1.5 flex-wrap">
-                      <span className="text-slate-600 font-medium">{c.newValue}</span>
-                      <span className="text-slate-300">←</span>
-                      <span className="text-rose-500 font-semibold line-through">{c.oldValue}</span>
-                      <span className="text-slate-400 no-underline">（恢复为此值）</span>
-                    </p>
-                  </div>
-                </button>
-              )
-            })}
-          </div>
-        )}
-
-        <div className="flex gap-3 pt-1">
-          <button onClick={onClose}
-            className="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50 transition-colors">
-            取消
-          </button>
-          <button onClick={onConfirm}
-            disabled={checked.size === 0}
-            className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-rose-500 text-white rounded-xl text-sm font-bold hover:bg-rose-600 disabled:opacity-40 transition-colors">
-            <RotateCcw className="w-4 h-4" /> 回退选中项
-          </button>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// ── RegistrationCard ──────────────────────────────────────────────────────────
-
-function RegistrationCard({
-  reg,
-  projectId,
-}: {
-  reg: RegistrationInstance
-  projectId: string
-}) {
-  const navigate = useNavigate()
-  const activePhase = reg.phases.find((p) => p.status === 'active')
-  const completedCount = reg.phases.filter((p) => p.status === 'completed').length
-
-  return (
-    <button
-      onClick={() => navigate(`/project/${projectId}/registration/${reg.id}`)}
-      className="w-full text-left flex items-start gap-4 p-4 bg-white rounded-xl border border-slate-100 hover:border-brand-blue/20 hover:shadow-sm transition-all group"
-    >
-      <div className="w-10 h-10 rounded-xl bg-brand-blue/8 flex items-center justify-center flex-shrink-0">
-        <Trophy className="w-4 h-4 text-brand-blue" />
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 flex-wrap">
-          <p className="font-semibold text-slate-800 text-sm">{reg.competitionName}</p>
-          <span className={cn('px-2 py-0.5 rounded-full text-xs font-bold', STATUS_COLOR[reg.status])}>
-            {reg.status}
-          </span>
-        </div>
-        <p className="text-xs text-slate-400 mt-0.5">{reg.track} · 提交于 {formatTimestamp(reg.submittedAt)}</p>
-        {activePhase ? (
-          <p className="text-xs text-brand-blue mt-1 font-semibold">
-            当前阶段：{activePhase.label}
-          </p>
-        ) : completedCount === reg.phases.length && reg.phases.length > 0 ? (
-          <p className="text-xs text-emerald-600 mt-1 font-semibold">已完成全部阶段</p>
-        ) : null}
-      </div>
-      <div className="flex items-center gap-2 flex-shrink-0">
-        {STATUS_ICON[reg.status]}
-        <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-brand-blue transition-colors" />
-      </div>
-    </button>
-  )
-}
-
-// ── TimelineItem ──────────────────────────────────────────────────────────────
-
-function TimelineItem({
-  event,
-  onViewSnapshot,
-  onRollback,
-}: {
-  event: ProjectEvent
-  onViewSnapshot: (e: ProjectEvent) => void
-  onRollback: (e: ProjectEvent) => void
-}) {
-  const isApply = event.type === '报名'
-  const canRollback = !isApply && (event.changes ?? []).some((c) => ROLLBACKABLE_FIELDS.has(c.field))
-
-  return (
-    <div className="flex gap-4">
-      <div className="flex flex-col items-center">
-        <div className={cn(
-          'w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 z-10',
-          isApply ? 'bg-brand-blue text-white' : 'bg-slate-100 text-slate-500',
-        )}>
-          {isApply ? <Trophy className="w-3.5 h-3.5" /> : <Pencil className="w-3.5 h-3.5" />}
-        </div>
-        <div className="w-px flex-1 bg-slate-100 mt-1" />
-      </div>
-
-      <div className="pb-6 flex-1 min-w-0">
-        <div className="flex items-start justify-between gap-2">
-          <div>
-            <p className="text-sm font-semibold text-slate-800">{event.description}</p>
-            <p className="text-xs text-slate-400 mt-0.5 flex items-center gap-1">
-              <Clock className="w-3 h-3" />
-              {formatTimestamp(event.timestamp)}
-              <span className={cn('ml-2 px-1.5 py-0.5 rounded text-[10px] font-bold',
-                isApply ? 'bg-brand-blue/10 text-brand-blue' : 'bg-slate-100 text-slate-500',
-              )}>
-                {event.type}
-              </span>
-            </p>
-          </div>
-          <div className="flex items-center gap-2 flex-shrink-0">
-            {canRollback && (
-              <button onClick={() => onRollback(event)}
-                className="text-xs text-rose-400 hover:text-rose-600 flex items-center gap-1 transition-colors">
-                <RotateCcw className="w-3 h-3" /> 回退
-              </button>
-            )}
-            <button onClick={() => onViewSnapshot(event)}
-              className="text-xs text-slate-400 hover:text-brand-blue flex items-center gap-1 transition-colors">
-              快照 <ChevronRight className="w-3 h-3" />
-            </button>
-          </div>
-        </div>
-
-        {event.changes && event.changes.length > 0 && (
-          <div className="mt-2 space-y-1">
-            {event.changes.map((c, i) => (
-              <p key={i} className="text-xs text-slate-500">
-                <span className="font-semibold text-slate-600">{c.label}：</span>
-                <span className="line-through text-slate-400">{c.oldValue}</span>
-                {' → '}
-                <span className="text-emerald-600 font-semibold">{c.newValue}</span>
-              </p>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
-  )
-}
-
-// ── SnapshotModal ─────────────────────────────────────────────────────────────
-
-function SnapshotModal({ event, onClose }: { event: ProjectEvent; onClose: () => void }) {
-  const radarData = snapshotToRadar(event.snapshot)
-  const s = event.snapshot
-
-  return (
-    <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 space-y-5" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="font-bold text-slate-800">历史快照</p>
-            <p className="text-xs text-slate-400 mt-0.5">{formatTimestamp(event.timestamp)} · {event.description}</p>
-          </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 transition-colors text-lg leading-none">×</button>
-        </div>
-        <div className="w-full h-48">
-          <ResponsiveContainer width="100%" height="100%">
-            <RadarChart cx="50%" cy="50%" outerRadius="70%" data={radarData}>
-              <PolarGrid stroke="#e2e8f0" />
-              <PolarAngleAxis dataKey="subject" tick={{ fill: '#64748b', fontSize: 10 }} />
-              <Radar name="快照" dataKey="value" stroke="#0045c4" fill="#0045c4" fillOpacity={0.25} />
-            </RadarChart>
-          </ResponsiveContainer>
-        </div>
-        <div className="grid grid-cols-2 gap-2 text-sm">
-          {[
-            { Icon: Users,    label: '团队规模', val: `${s.teamSize} 人` },
-            { Icon: Zap,      label: '融资额',   val: s.fundingAmount > 0 ? `${s.fundingAmount} 万` : '—' },
-            { Icon: Award,    label: '专利数',   val: `${s.patentCount} 项` },
-            { Icon: TrendingUp, label: '成熟度', val: s.maturityLevel },
-          ].map(({ Icon, label, val }) => (
-            <div key={label} className="flex items-center gap-2 p-2.5 bg-slate-50 rounded-xl">
-              <Icon className="w-4 h-4 text-slate-400" />
-              <span className="text-slate-600">{label}</span>
-              <span className="ml-auto font-bold text-slate-800">{val}</span>
-            </div>
-          ))}
-        </div>
-        {s.businessScope.length > 0 && (
-          <div className="flex gap-1.5 flex-wrap">
-            {s.businessScope.map((t) => (
-              <span key={t} className="px-2 py-0.5 bg-brand-blue/8 text-brand-blue text-xs rounded-full font-semibold">{t}</span>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
-  )
-}
-
-// ── Small helpers ─────────────────────────────────────────────────────────────
-
-function IdentityRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <span className="text-xs text-slate-400">{label}</span>
-      <p className="text-sm font-semibold text-slate-700 mt-0.5 truncate">{value}</p>
-    </div>
-  )
-}
-
-function DimBadge({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
-  return (
-    <div className="flex items-center gap-2 p-2 bg-slate-50 rounded-xl">
-      <span className="text-slate-400">{icon}</span>
-      <span className="text-xs text-slate-500">{label}</span>
-      <span className="ml-auto text-xs font-bold text-slate-700">{value}</span>
-    </div>
-  )
-}
-
-// ── ProjectDetailsCard (formerly ContentBlocksCard) ───────────────────────────
-
-function ProjectDetailsCard({ project, onEdit }: { project: ProjectV2; onEdit: () => void }) {
-  const [expanded, setExpanded] = useState(false)
-  const blocks = [
-    { label: '项目简介', value: project.briefIntro },
-    { label: '带头人信息', value: project.leaderInfo },
-    { label: '团队成员', value: project.teamMembersDesc },
-    { label: '荣誉获奖', value: project.honors },
-    { label: '代表性著作 / 论文', value: project.papers },
-    { label: '个人陈述', value: project.personalStatement },
-  ].filter((b) => b.value)
-
-  return (
-    <div className="glass-card p-5">
-      <div className="flex items-center justify-between">
-        <button onClick={() => setExpanded((v) => !v)} className="flex items-center gap-2">
-          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">项目详情</p>
-          <span className="text-xs text-slate-400">{expanded ? '收起' : '展开查看'}</span>
-        </button>
-        <button onClick={onEdit}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-brand-blue bg-brand-blue/8 rounded-xl hover:bg-brand-blue/15 transition-colors">
-          <Pencil className="w-3 h-3" /> 编辑项目
-        </button>
-      </div>
-
-      {expanded && (
-        <div className="mt-4 space-y-4">
-          {blocks.length === 0 ? (
-            <p className="text-sm text-slate-400">暂无内容，点击右上角"编辑项目"填写</p>
-          ) : (
-            blocks.map((b) => (
-              <div key={b.label}>
-                <p className="text-xs font-bold text-slate-500 mb-1">{b.label}</p>
-                <p className="text-sm text-slate-700 whitespace-pre-wrap">{b.value}</p>
-              </div>
-            ))
-          )}
-          {project.pdfFiles.length > 0 && (
-            <div>
-              <p className="text-xs font-bold text-slate-500 mb-2">附件</p>
-              <div className="space-y-1.5">
-                {project.pdfFiles.map((f) => (
-                  <div key={f.name} className="flex items-center gap-2 p-2.5 bg-slate-50 rounded-xl text-sm text-slate-600">
-                    <FileText className="w-4 h-4 text-slate-400" />
-                    <span>{f.name}</span>
-                    <span className="ml-auto text-xs text-slate-400">{f.size}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  )
-}
-
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function ProjectDashboardPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { projects, registrations, updateProject, recordEdit } = useProjectDashboardStore()
-
-  const [snapshotEvent, setSnapshotEvent] = useState<ProjectEvent | null>(null)
-  const [editOpen, setEditOpen] = useState(false)
-  const [rollbackEvent, setRollbackEvent] = useState<ProjectEvent | null>(null)
-  const [rollbackChecked, setRollbackChecked] = useState<Set<string>>(new Set())
+  const { projectsV3, updateProjectV3, recordEditV3, recordRollbackV3, updateVerificationV3 } = useProjectDashboardStore()
   const [timelineOpen, setTimelineOpen] = useState(true)
-  const [expandedRuns, setExpandedRuns] = useState<Set<number>>(new Set())
+  const [editOpen, setEditOpen] = useState(false)
+  const [importOpen, setImportOpen] = useState(false)
+  const [detailEvent, setDetailEvent] = useState<ProjectEvent | null>(null)
 
-  const project = projects.find((p) => p.id === id)
-  const projectRegs = registrations.filter((r) => r.projectId === id)
-  const sortedEvents = project
-    ? [...project.events].sort((a, b) => b.timestamp.localeCompare(a.timestamp))
-    : []
+  // Phase 8 — verification: track per-field loading state
+  const [verifyingField, setVerifyingField] = useState<VerifiableField | null>(null)
+
+  // Phase 7 — AI growth review
+  const [reviewResult, setReviewResult] = useState<string | null>(null)
+  const [reviewLoading, setReviewLoading] = useState(false)
+
+  // Phase 7 — AI snapshot comparison
+  const [compareMode, setCompareMode] = useState(false)
+  const [selectedForCompare, setSelectedForCompare] = useState<string[]>([])
+  const [comparisonResult, setComparisonResult] = useState<string | null>(null)
+  const [comparisonLoading, setComparisonLoading] = useState(false)
+
+  const project = projectsV3.find((p) => p.id === id)
 
   if (!project) {
     return (
       <div className="flex flex-col items-center py-20 gap-3 text-slate-400">
         <p className="text-sm">项目不存在</p>
-        <button onClick={() => navigate('/project')} className="text-sm text-brand-blue hover:underline">返回项目列表</button>
+        <button onClick={() => navigate('/project')} className="text-sm text-brand-blue hover:underline">
+          返回项目列表
+        </button>
       </div>
     )
   }
 
-  const radarData = projectToRadar(project)
-  const trendData = buildTrendData(project)
+  const liveSnap = deriveProjectSnapshot(project, 'live', new Date().toISOString())
+  const radarData = radarSnapshotToChartData(liveSnap.radar)
+  const sortedEvents = [...project.events].sort((a, b) => b.timestamp.localeCompare(a.timestamp))
 
-  // ── Handlers ──────────────────────────────────────────────────────────────
+  // Derive the two selected comparison nodes (sorted chronologically)
+  const compareNodeData = (() => {
+    if (selectedForCompare.length !== 2) return null
+    const [idA, idB] = selectedForCompare as [string, string]
+    const evA = project.events.find((e) => e.id === idA)
+    const evB = project.events.find((e) => e.id === idB)
+    if (!evA || !evB) return null
+    const [first, second] = evA.timestamp <= evB.timestamp ? [evA, evB] : [evB, evA]
+    const snapA = project.snapshots[first.snapshotId]
+    const snapB = project.snapshots[second.snapshotId]
+    if (!snapA || !snapB) return null
+    return { first, second, snapA, snapB }
+  })()
+  const allDomain = [
+    project.professionalDomain.top?.label,
+    project.professionalDomain.mid?.label,
+    project.professionalDomain.leaf?.label,
+  ].filter(Boolean).join(' › ')
 
-  function handleEditSave(patch: Partial<ProjectV2>, changes: FieldChange[]) {
-    const p = project!
-    const snapshot = {
-      teamSize: (patch.teamSize ?? p.teamSize) as number,
-      fundingAmount: (patch.fundingAmount ?? p.fundingAmount) as number,
-      patentCount: (patch.patentCount ?? p.patentCount) as number,
-      maturityLevel: (patch.maturityLevel ?? p.maturityLevel) as MaturityLevel,
-      businessScope: (patch.businessScope ?? p.businessScope) as string[],
-    }
-    const hasContentChange = (
-      (patch.briefIntro !== undefined && patch.briefIntro !== p.briefIntro) ||
-      (patch.leaderInfo !== undefined && patch.leaderInfo !== p.leaderInfo) ||
-      (patch.teamMembersDesc !== undefined && patch.teamMembersDesc !== p.teamMembersDesc) ||
-      (patch.honors !== undefined && patch.honors !== p.honors) ||
-      (patch.papers !== undefined && patch.papers !== p.papers) ||
-      (patch.personalStatement !== undefined && patch.personalStatement !== p.personalStatement)
+  const a = project.applicant
+  const o = project.orgInfo
+
+  const COLLECTION_LABELS: Record<string, string> = {
+    educations: '教育经历', works: '工作经历', majorProjects: '主要项目',
+    papers: '代表性论文', patents: '代表性专利', softwareCopyrights: '软件著作权',
+    products: '主要产品', awards: '奖励表彰', books: '代表性著作',
+    conferenceReports: '学术会议报告', academicPositions: '学术任职',
+    foundedCompanies: '异地创办企业',
+  }
+
+  function saveWithDiff(patch: Partial<Project>, description: string) {
+    const { events: _e, snapshots: _s, registrations: _r, ...oldData } = project!
+    const newProjectData = { ...project!, ...patch }
+    const { events: _e2, snapshots: _s2, registrations: _r2, ...newData } = newProjectData
+    const changes = computeProjectDiff(
+      oldData as ProjectSnapshotData,
+      newData as ProjectSnapshotData,
     )
-    updateProject(p.id, patch)
-    if (changes.length > 0 || hasContentChange) {
-      const desc = changes.length > 0 ? '更新项目信息' : '更新项目详情内容'
-      recordEdit(p.id, desc, changes, snapshot)
-    }
+    updateProjectV3(project!.id, patch)
+    recordEditV3(project!.id, description, changes)
+  }
+
+  function patchApplicant(key: string, items: CollectionItem[]) {
+    const label = COLLECTION_LABELS[key] ?? key
+    saveWithDiff(
+      { applicant: { ...a, [key]: items } as unknown as Applicant },
+      `更新${label}`,
+    )
+  }
+
+  function handleEditSave(patch: Partial<Project>, desc: string) {
+    saveWithDiff(patch, desc || '更新项目信息')
     setEditOpen(false)
   }
 
-  function handleOpenRollback(event: ProjectEvent) {
-    const rollbackable = (event.changes ?? []).filter((c) => ROLLBACKABLE_FIELDS.has(c.field))
-    setRollbackChecked(new Set(rollbackable.map((c) => c.field)))
-    setRollbackEvent(event)
+  function handleRollback(event: ProjectEvent) {
+    const snap = project!.snapshots[event.snapshotId]
+    if (!snap) return
+    updateProjectV3(project!.id, snap.data as Partial<Project>)
+    recordRollbackV3(project!.id, `回退到「${event.description}」`)
+    setDetailEvent(null)
   }
 
-  function handleToggleRollback(field: string) {
-    setRollbackChecked((prev) => {
-      const next = new Set(prev)
-      if (next.has(field)) next.delete(field)
-      else next.add(field)
-      return next
+  async function handleVerify(field: VerifiableField) {
+    if (verifyingField) return
+    setVerifyingField(field)
+    try {
+      const result = await verificationService.requestVerification({
+        projectId: project!.id,
+        field,
+        evidence: [],
+      })
+      updateVerificationV3(project!.id, field, result.status)
+    } catch {
+      // verification error is non-blocking; status remains unchanged
+    } finally {
+      setVerifyingField(null)
+    }
+  }
+
+  async function handleGenerateReview() {
+    if (reviewLoading) return
+    setReviewLoading(true)
+    setReviewResult(null)
+    try {
+      const svc = getAIGrowthService()
+      const text = await svc.generateReview({
+        projectName: project!.declarationName || project!.projectName,
+        events: project!.events,
+        currentRadar: liveSnap.radar,
+      })
+      setReviewResult(text)
+    } catch (e) {
+      setReviewResult(`生成失败：${e instanceof Error ? e.message : '未知错误'}`)
+    } finally {
+      setReviewLoading(false)
+    }
+  }
+
+  function toggleCompareSelection(eventId: string) {
+    setSelectedForCompare((prev) => {
+      if (prev.includes(eventId)) return prev.filter((id) => id !== eventId)
+      if (prev.length >= 2) return [prev[1]!, eventId]
+      return [...prev, eventId]
     })
+    setComparisonResult(null)
   }
 
-  function handleConfirmRollback() {
-    if (!rollbackEvent) return
-    const rollbackable = (rollbackEvent.changes ?? []).filter((c) => rollbackChecked.has(c.field))
-    const patch: Record<string, unknown> = {}
-    const reverseChanges: FieldChange[] = []
-
-    for (const c of rollbackable) {
-      const restoredValue = parseRollbackValue(c.field, c.oldValue)
-      patch[c.field] = restoredValue
-      reverseChanges.push({ field: c.field, label: c.label, oldValue: c.newValue, newValue: c.oldValue })
-    }
-
-    const patchTyped = patch as Partial<ProjectV2>
-    const p = project!
-    const snapshot = {
-      teamSize: (patchTyped.teamSize ?? p.teamSize) as number,
-      fundingAmount: (patchTyped.fundingAmount ?? p.fundingAmount) as number,
-      patentCount: (patchTyped.patentCount ?? p.patentCount) as number,
-      maturityLevel: (patchTyped.maturityLevel ?? p.maturityLevel) as MaturityLevel,
-      businessScope: (patchTyped.businessScope ?? p.businessScope) as string[],
-    }
-
-    updateProject(p.id, patchTyped)
-    recordEdit(
-      p.id,
-      `回退「${rollbackEvent.description}」(${formatTimestamp(rollbackEvent.timestamp)})`,
-      reverseChanges,
-      snapshot,
+  async function handleGenerateComparison() {
+    if (!compareNodeData || comparisonLoading) return
+    const { first, second, snapA, snapB } = compareNodeData
+    const between = project!.events.filter(
+      (e) => e.timestamp > first.timestamp && e.timestamp <= second.timestamp,
     )
-    setRollbackEvent(null)
+    setComparisonLoading(true)
+    setComparisonResult(null)
+    try {
+      const svc = getAIGrowthService()
+      const text = await svc.generateComparison({
+        projectName: project!.declarationName || project!.projectName,
+        nodeA: { timestamp: first.timestamp, description: first.description, radar: snapA.radar },
+        nodeB: { timestamp: second.timestamp, description: second.description, radar: snapB.radar },
+        eventsBetween: between,
+      })
+      setComparisonResult(text)
+    } catch (e) {
+      setComparisonResult(`生成失败：${e instanceof Error ? e.message : '未知错误'}`)
+    } finally {
+      setComparisonLoading(false)
+    }
   }
-
-  // ── Render ────────────────────────────────────────────────────────────────
 
   return (
     <>
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <button onClick={() => navigate('/project')} className="text-slate-400 hover:text-slate-600 transition-colors">
-              <ArrowLeft className="w-5 h-5" />
-            </button>
-            <div>
-              <h1 className="text-xl font-black text-slate-800">{project.displayName}</h1>
-              <p className="text-xs text-slate-400 mt-0.5">{project.officialName}</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <button onClick={() => setEditOpen(true)}
-              className="flex items-center gap-2 px-4 py-2.5 border border-slate-200 text-slate-600 rounded-xl text-sm font-bold hover:bg-slate-50 transition-colors">
-              <Pencil className="w-4 h-4" /> 编辑
-            </button>
-            <button onClick={() => navigate(`/project/${id}/apply`)}
-              className="flex items-center gap-2 px-4 py-2.5 bg-brand-blue text-white rounded-xl text-sm font-bold hover:bg-brand-blue/90 transition-colors">
-              <Trophy className="w-4 h-4" /> 一键报名
-            </button>
-          </div>
-        </div>
+      {importOpen && (
+        <ImportModal
+          project={project}
+          onClose={() => setImportOpen(false)}
+          onConfirm={(patch, desc) => {
+            saveWithDiff(patch, desc)
+            setImportOpen(false)
+          }}
+        />
+      )}
+      <div className="flex gap-5 items-start">
+        <InPageNav />
 
-        {/* Identity card */}
-        <div className="glass-card p-5">
-          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">项目身份</p>
-          <div className="grid grid-cols-2 gap-x-6 gap-y-2.5 text-sm">
-            <IdentityRow label="赛道 / 领域" value={project.track || '—'} />
-            <IdentityRow label="核心技术" value={project.coreTech || '—'} />
-            <IdentityRow label="关联企业" value={project.relatedEnterprise || '—'} />
-            <IdentityRow label="团队负责人" value={project.teamLead || '—'} />
-          </div>
-          {project.businessScope.length > 0 && (
-            <div className="flex gap-1.5 flex-wrap mt-3 pt-3 border-t border-slate-100">
-              {project.businessScope.map((t) => (
-                <span key={t} className="px-2 py-0.5 bg-brand-blue/8 text-brand-blue text-xs rounded-full font-semibold">{t}</span>
-              ))}
-            </div>
-          )}
-        </div>
+        <div className="flex-1 min-w-0 space-y-4">
 
-        {/* Growth: radar + trend */}
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          <div className="glass-card p-5">
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">五维成长雷达</p>
-            <p className="text-xs text-slate-400 mb-3">当前时点快照</p>
-            <div className="h-52">
-              <ResponsiveContainer width="100%" height="100%">
-                <RadarChart cx="50%" cy="50%" outerRadius="70%" data={radarData}>
-                  <PolarGrid stroke="#e2e8f0" />
-                  <PolarAngleAxis dataKey="subject" tick={{ fill: '#64748b', fontSize: 10 }} />
-                  <Radar name="成长" dataKey="value" stroke="#0045c4" fill="#0045c4" fillOpacity={0.3} />
-                </RadarChart>
-              </ResponsiveContainer>
+          {/* ── Header ──────────────────────────────────────────────────── */}
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <button onClick={() => navigate('/project')} className="text-slate-400 hover:text-slate-600 transition-colors">
+                <ArrowLeft className="w-5 h-5" />
+              </button>
+              <div>
+                <h1 className="text-xl font-black text-slate-800">
+                  {project.declarationName || project.projectName}
+                </h1>
+                <p className="text-xs text-slate-400 mt-0.5">{project.projectName}</p>
+              </div>
             </div>
-            <div className="grid grid-cols-2 gap-2 mt-3">
-              <DimBadge icon={<Users className="w-3.5 h-3.5" />} label="团队规模" value={`${project.teamSize} 人`} />
-              <DimBadge icon={<Zap className="w-3.5 h-3.5" />} label="融资额" value={project.fundingAmount > 0 ? `${project.fundingAmount} 万` : '未融资'} />
-              <DimBadge icon={<Award className="w-3.5 h-3.5" />} label="专利" value={`${project.patentCount} 项`} />
-              <DimBadge icon={<TrendingUp className="w-3.5 h-3.5" />} label="成熟度" value={project.maturityLevel} />
-            </div>
-          </div>
-
-          <div className="glass-card p-5">
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">成长趋势</p>
-            <p className="text-xs text-slate-400 mb-3">各维度随时间变化</p>
-            <div className="h-52">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={trendData} margin={{ top: 4, right: 8, bottom: 0, left: -20 }}>
-                  <CartesianGrid stroke="#f1f5f9" strokeDasharray="3 3" />
-                  <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#94a3b8' }} />
-                  <YAxis tick={{ fontSize: 10, fill: '#94a3b8' }} />
-                  <Tooltip
-                    formatter={(v, name) => {
-                      const labels: Record<string, string> = { teamSize: '团队(人)', funding: '融资(万)', patents: '专利(项)' }
-                      return [v, labels[name as string] ?? name]
-                    }}
-                    labelFormatter={(l) => trendData.find((x) => x.date === l)?.fullDate ?? l}
-                    contentStyle={{ fontSize: 11, borderRadius: 8 }}
-                  />
-                  <Legend wrapperStyle={{ fontSize: 11 }} formatter={(v) => {
-                    const m: Record<string, string> = { teamSize: '团队', funding: '融资(万)', patents: '专利' }
-                    return m[v] ?? v
-                  }} />
-                  <Line type="monotone" dataKey="teamSize" stroke="#0045c4" strokeWidth={2} dot={{ r: 3 }} />
-                  <Line type="monotone" dataKey="funding" stroke="#0ea5e9" strokeWidth={2} dot={{ r: 3 }} />
-                  <Line type="monotone" dataKey="patents" stroke="#10b981" strokeWidth={2} dot={{ r: 3 }} />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        </div>
-
-        {/* Registration records */}
-        <div className="glass-card p-5">
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">报名记录</p>
-            <span className="text-xs text-slate-400">{projectRegs.length} 次</span>
-          </div>
-          {projectRegs.length === 0 ? (
-            <div className="flex flex-col items-center py-8 text-slate-400 gap-2">
-              <Trophy className="w-8 h-8" />
-              <p className="text-sm">暂无报名记录</p>
-              <button onClick={() => navigate(`/project/${id}/apply`)} className="text-xs text-brand-blue hover:underline">
-                去报名赛事 →
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <button
+                onClick={() => setImportOpen(true)}
+                className="flex items-center gap-2 px-3 py-2.5 border border-slate-200 text-slate-600 rounded-xl text-sm font-bold hover:bg-slate-50 transition-colors"
+                title="上传本地表格识别导入"
+              >
+                <Upload className="w-4 h-4" /> 导入表格
+              </button>
+              <button
+                onClick={() => setEditOpen(true)}
+                className="flex items-center gap-2 px-4 py-2.5 border border-slate-200 text-slate-600 rounded-xl text-sm font-bold hover:bg-slate-50 transition-colors"
+              >
+                <Pencil className="w-4 h-4" /> 编辑
+              </button>
+              <button
+                onClick={() => navigate(`/project/${id}/apply`)}
+                className="flex items-center gap-2 px-4 py-2.5 bg-brand-blue text-white rounded-xl text-sm font-bold hover:bg-brand-blue/90 transition-colors"
+              >
+                <Trophy className="w-4 h-4" /> 一键报名
               </button>
             </div>
-          ) : (
-            <div className="space-y-2">
-              {projectRegs.map((r) => (
-                <RegistrationCard key={r.id} reg={r} projectId={id!} />
-              ))}
-            </div>
-          )}
-        </div>
+          </div>
 
-        {/* Timeline */}
-        <div className="glass-card p-5">
-          {/* Collapsible header */}
-          <button
-            onClick={() => setTimelineOpen((v) => !v)}
-            className="flex items-center gap-2 w-full text-left mb-1"
-          >
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest flex-1">成长时间线</p>
-            <span className="text-xs text-slate-400">{timelineOpen ? '收起' : `展开 · ${sortedEvents.length} 条`}</span>
-            <ChevronDown className={cn('w-3.5 h-3.5 text-slate-400 transition-transform', timelineOpen && 'rotate-180')} />
-          </button>
-
-          {timelineOpen && (
-            <div className="mt-4">
-              {sortedEvents.length === 0 ? (
-                <p className="text-sm text-slate-400 text-center py-6">暂无事件</p>
-              ) : (() => {
-                const groups = groupTimeline(sortedEvents)
-                return groups.map((group, gi) => {
-                  if (!Array.isArray(group)) {
-                    // 报名 anchor event — always rendered
-                    return (
-                      <TimelineItem
-                        key={group.id}
-                        event={group}
-                        onViewSnapshot={setSnapshotEvent}
-                        onRollback={handleOpenRollback}
-                      />
-                    )
-                  }
-                  // Modification run
-                  const isExpanded = expandedRuns.has(gi)
-                  const needsFold = group.length >= MOD_COLLAPSE_THRESHOLD
-                  const visible = needsFold && !isExpanded ? group.slice(0, 1) : group
-                  const hiddenCount = group.length - visible.length
-                  return (
-                    <div key={gi}>
-                      {visible.map((ev) => (
-                        <TimelineItem
-                          key={ev.id}
-                          event={ev}
-                          onViewSnapshot={setSnapshotEvent}
-                          onRollback={handleOpenRollback}
-                        />
-                      ))}
-                      {needsFold && (
-                        <button
-                          onClick={() => setExpandedRuns((prev) => {
-                            const next = new Set(prev)
-                            if (isExpanded) next.delete(gi); else next.add(gi)
-                            return next
-                          })}
-                          className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-brand-blue transition-colors mb-6 ml-12"
-                        >
-                          <ChevronDown className={cn('w-3 h-3 transition-transform', isExpanded && 'rotate-180')} />
-                          {isExpanded ? '收起修改记录' : `展开另外 ${hiddenCount} 条修改记录`}
-                        </button>
-                      )}
+          {/* ── 数据/评估区（前置，进入即可见）──────────────────────────── */}
+          <div id="eval" className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <div className="glass-card p-5">
+              <SecTitle>五维成长雷达</SecTitle>
+              <p className="text-xs text-slate-400 mt-0.5 mb-3">基于当前项目数据实时计算</p>
+              <div className="h-52">
+                <ResponsiveContainer width="100%" height="100%">
+                  <RadarChart cx="50%" cy="50%" outerRadius="70%" data={radarData}>
+                    <PolarGrid stroke="#e2e8f0" />
+                    <PolarAngleAxis dataKey="subject" tick={{ fill: '#64748b', fontSize: 10 }} />
+                    <Radar name="成长" dataKey="value" stroke="#0045c4" fill="#0045c4" fillOpacity={0.3} />
+                  </RadarChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="grid grid-cols-1 gap-1.5 mt-3">
+                {radarData.map((d) => (
+                  <div key={d.subject} className="flex items-center gap-2 px-2 py-1.5 bg-slate-50 rounded-lg text-xs">
+                    <span className="w-16 text-slate-500 flex-shrink-0">{d.subject}</span>
+                    <div className="flex-1 bg-slate-200 rounded-full h-1.5 overflow-hidden">
+                      <div className="h-full bg-brand-blue rounded-full" style={{ width: `${d.value}%` }} />
                     </div>
-                  )
-                })
+                    <span className="font-bold text-slate-700 w-8 text-right">{d.value}</span>
+                  </div>
+                ))}
+              </div>
+              {/* Verification coverage note */}
+              {(() => {
+                const vs = project.verificationStatus
+                const unverified = (Object.entries(vs) as [VerifiableField, VerificationStatusValue][])
+                  .filter(([, s]) => s !== 'verified')
+                return unverified.length > 0 ? (
+                  <p className="mt-2 text-[10px] text-slate-400 flex items-center gap-1">
+                    <ShieldAlert className="w-3 h-3 flex-shrink-0" />
+                    {unverified.length} 项未验证维度暂不计入：
+                    {unverified.map(([f]) => VERIFIABLE_FIELD_LABELS[f].split('（')[0]).join('、')}
+                  </p>
+                ) : null
               })()}
             </div>
-          )}
-        </div>
 
-        {/* Project details */}
-        <ProjectDetailsCard project={project} onEdit={() => setEditOpen(true)} />
+            <div className="glass-card p-5 flex flex-col">
+              <div className="flex items-start justify-between gap-3 mb-1">
+                <div>
+                  <SecTitle>AI 成长回顾</SecTitle>
+                  <p className="text-xs text-slate-400 mt-0.5">按需生成 · 点击才调用 AI</p>
+                </div>
+                <button
+                  onClick={handleGenerateReview}
+                  disabled={reviewLoading}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-brand-blue text-white rounded-lg font-bold hover:bg-brand-blue/90 disabled:opacity-50 transition-colors flex-shrink-0"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  {reviewLoading ? '生成中…' : reviewResult ? '重新生成' : '生成成长回顾'}
+                </button>
+              </div>
+              {reviewLoading ? (
+                <div className="flex-1 flex items-center justify-center gap-2 py-10 text-slate-400">
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <span className="text-sm">AI 正在分析成长历程…</span>
+                </div>
+              ) : reviewResult ? (
+                <p className="mt-3 text-sm text-slate-700 leading-[1.9] bg-slate-50 rounded-xl p-4">
+                  {reviewResult}
+                </p>
+              ) : (
+                <div className="flex-1 flex flex-col items-center justify-center gap-3 text-slate-300 py-8">
+                  <Brain className="w-10 h-10" />
+                  <p className="text-xs text-slate-400 text-center max-w-[180px] leading-relaxed">
+                    点击后 AI 将基于时间线变更记录，叙述项目从创立至今的成长历程
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* ── 信息区 ──────────────────────────────────────────────────── */}
+
+          {/* Project Identity */}
+          <div id="identity" className="glass-card p-5 space-y-4">
+            <SecTitle>项目身份</SecTitle>
+            <div className="grid grid-cols-2 gap-x-6 gap-y-2 sm:grid-cols-3">
+              <InfoRow label="申报用名" value={project.declarationName} />
+              <InfoRow label="核心技术" value={project.coreTech} />
+              <InfoRow label="专业领域" value={allDomain || '—'} />
+              <InfoRow label="关联企业" value={o.name} />
+              <InfoRow label="团队负责人" value={a.name} />
+              <InfoRow label="项目正式名称" value={project.projectName} className="col-span-2 sm:col-span-1" />
+            </div>
+            {project.projectBrief && (
+              <div className="pt-3 border-t border-slate-100">
+                <p className="text-xs font-bold text-slate-500 mb-1">项目简介</p>
+                <p className="text-sm text-slate-700 leading-relaxed">{project.projectBrief}</p>
+              </div>
+            )}
+          </div>
+
+          {/* Applicant */}
+          <div id="applicant" className="glass-card p-5 space-y-5">
+            <SecTitle>申报人 / 带头人</SecTitle>
+
+            <div>
+              <SubTitle>基本信息</SubTitle>
+              <div className="grid grid-cols-2 gap-x-6 gap-y-2 sm:grid-cols-3">
+                <InfoRow label="姓名" value={a.name} />
+                <InfoRow label="英文姓名" value={a.nameEn} />
+                {a.nameNative && <InfoRow label="本国语言姓名" value={a.nameNative} />}
+                <InfoRow label="性别" value={a.gender} />
+                <InfoRow label="出生日期" value={a.birthDate} />
+                {a.birthPlace && <InfoRow label="出生地区" value={a.birthPlace} />}
+                <InfoRow label="国籍" value={a.nationality} />
+                {a.nationality !== '中国' && (
+                  <InfoRow label="是否华裔" value={a.isEthnicChinese ? '是' : '否'} />
+                )}
+                <InfoRow label="证件类型" value={a.idType} />
+                {a.idExpiry && <InfoRow label="证件有效期" value={a.idExpiry} />}
+                <InfoRow label="手机号" value={a.phone} />
+                <InfoRow label="邮箱" value={a.email} />
+                <InfoRow label="最高学历" value={a.highestDegree} />
+                <InfoRow label="毕业院校" value={a.highestDegreeInstitution} />
+                <InfoRow label="所学专业" value={a.highestDegreeMajor} />
+              </div>
+            </div>
+
+            <div className="pt-3 border-t border-slate-100">
+              <SubTitle>到岗信息</SubTitle>
+              <div className="grid grid-cols-2 gap-x-6 gap-y-2 sm:grid-cols-3">
+                <InfoRow label="是否已全职到岗" value={a.isFullTimeOnBoarded ? '是' : '否'} />
+                <InfoRow label="（拟任）职务" value={a.intendedPosition} />
+                <InfoRow label="（拟）到岗时间" value={a.plannedArrivalDate} />
+                {(a.laborContractStart || a.laborContractEnd) && (
+                  <InfoRow label="劳动合同" value={`${a.laborContractStart || '—'} — ${a.laborContractEnd || '—'}`} />
+                )}
+                <InfoRow label="来宁时间" value={a.comeToNingboDate} />
+                <InfoRow label="来宁前单位" value={a.lastOrgBeforeComeToNingbo} className="col-span-2" />
+                {a.returnFromAbroadDate && (
+                  <>
+                    <InfoRow label="（拟）回国时间" value={a.returnFromAbroadDate} />
+                    {a.lastOrgBeforeReturnFromAbroad && (
+                      <InfoRow label="回国前单位" value={a.lastOrgBeforeReturnFromAbroad} className="col-span-2" />
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+
+            {(a.personalBrief || a.achievementsSummary || a.honorsCertificates) && (
+              <div className="pt-3 border-t border-slate-100 space-y-3">
+                <SubTitle>个人陈述</SubTitle>
+                <InfoRow label="有无创业经历" value={a.hasEntrepreneurExperience ? '有' : '无'} className="w-48" />
+                <TextBlock label="个人简要介绍" value={a.personalBrief} />
+                <TextBlock label="过往主要业绩" value={a.achievementsSummary} />
+                {a.honorsCertificates && <TextBlock label="曾获荣誉" value={a.honorsCertificates} />}
+              </div>
+            )}
+
+            <div className="pt-3 border-t border-slate-100 space-y-3">
+              <RepeatableCollection schema={EDUCATION_SCHEMA}
+                items={a.educations as CollectionItem[]}
+                onChange={(items) => patchApplicant('educations', items)} />
+              <RepeatableCollection schema={WORK_SCHEMA}
+                items={a.works as CollectionItem[]}
+                onChange={(items) => patchApplicant('works', items)} />
+              <RepeatableCollection schema={MAJOR_PROJECT_SCHEMA}
+                items={a.majorProjects as CollectionItem[]}
+                onChange={(items) => patchApplicant('majorProjects', items)} />
+              <RepeatableCollection schema={PAPER_SCHEMA}
+                items={a.papers as CollectionItem[]}
+                onChange={(items) => patchApplicant('papers', items)} />
+              <RepeatableCollection schema={PATENT_SCHEMA}
+                items={a.patents as CollectionItem[]}
+                onChange={(items) => patchApplicant('patents', items)} />
+              <RepeatableCollection schema={SOFTWARE_COPYRIGHT_SCHEMA}
+                items={a.softwareCopyrights as CollectionItem[]}
+                onChange={(items) => patchApplicant('softwareCopyrights', items)} />
+              <RepeatableCollection schema={PRODUCT_SCHEMA}
+                items={a.products as CollectionItem[]}
+                onChange={(items) => patchApplicant('products', items)} />
+              <RepeatableCollection schema={AWARD_SCHEMA}
+                items={a.awards as CollectionItem[]}
+                onChange={(items) => patchApplicant('awards', items)} />
+              <RepeatableCollection schema={BOOK_SCHEMA}
+                items={a.books as CollectionItem[]}
+                onChange={(items) => patchApplicant('books', items)} />
+              <RepeatableCollection schema={CONFERENCE_REPORT_SCHEMA}
+                items={a.conferenceReports as CollectionItem[]}
+                onChange={(items) => patchApplicant('conferenceReports', items)} />
+              <RepeatableCollection schema={ACADEMIC_POSITION_SCHEMA}
+                items={a.academicPositions as CollectionItem[]}
+                onChange={(items) => patchApplicant('academicPositions', items)} />
+              <RepeatableCollection schema={FOUNDED_COMPANY_SCHEMA}
+                items={a.foundedCompanies as CollectionItem[]}
+                onChange={(items) => patchApplicant('foundedCompanies', items)} />
+            </div>
+          </div>
+
+          {/* Team Members */}
+          <div id="team" className="glass-card p-5">
+            <div className="flex items-center gap-3 mb-3">
+              <SecTitle className="flex-1">项目团队</SecTitle>
+              <VerificationBadge status={project.verificationStatus.teamMembers} />
+              {project.verificationStatus.teamMembers !== 'verified' && (
+                <button
+                  disabled={verifyingField === 'teamMembers'}
+                  onClick={() => handleVerify('teamMembers')}
+                  className="text-[10px] font-bold text-brand-blue hover:underline disabled:opacity-50"
+                >
+                  {verifyingField === 'teamMembers' ? '提交中…' : '申请验证'}
+                </button>
+              )}
+            </div>
+            <p className="text-xs text-slate-400 -mt-1 mb-3">
+              验证后团队规模计入雷达图
+              {project.verificationStatus.teamMembers === 'verified' && (
+                <span className="ml-1 text-emerald-600 font-semibold">
+                  · 当前 {project.teamMembers.length + 1} 人（已计入）
+                </span>
+              )}
+            </p>
+            <RepeatableCollection
+              schema={TEAM_MEMBER_SCHEMA}
+              items={project.teamMembers as CollectionItem[]}
+              onChange={(items) => saveWithDiff({ teamMembers: items as unknown as TeamMember[] }, '更新项目团队')}
+              defaultExpanded
+            />
+          </div>
+
+          {/* Project Details */}
+          <div id="proj-detail" className="glass-card p-5 space-y-4">
+            <SecTitle>项目详情</SecTitle>
+            <TextBlock label="项目背景意义" value={project.projectBackground} />
+            <TextBlock label="项目实施内容" value={project.projectContent} />
+            <TextBlock label="工作基础和条件" value={project.workBasis} />
+            <TextBlock label="预期贡献及验收指标" value={project.expectedContribution} />
+            <TextBlock label="预期经济效益" value={project.economicEfficiency} />
+            {!project.projectBackground && !project.projectContent && !project.workBasis
+              && !project.expectedContribution && !project.economicEfficiency && (
+              <p className="text-sm text-slate-400">暂无内容，点击右上角"编辑"填写</p>
+            )}
+            <div className="pt-3 border-t border-slate-100">
+              <RepeatableCollection
+                schema={PROJECT_STAGE_SCHEMA}
+                items={project.projectStages as CollectionItem[]}
+                onChange={(items) => saveWithDiff({ projectStages: items as unknown as ProjectStage[] }, '更新阶段性目标')}
+                defaultExpanded
+              />
+            </div>
+          </div>
+
+          {/* Investment */}
+          <div id="investment" className="glass-card p-5">
+            <SecTitle>投入预测</SecTitle>
+            <div className="grid grid-cols-2 gap-3 mt-3 sm:grid-cols-4">
+              <NumStat label="项目总投入预测（5年）" value={project.totalInvestmentForecast} unit="万元" />
+              <NumStat label="单位已投入" value={project.alreadyInvestedByOrg} unit="万元" />
+              <NumStat label="已获区县市支持" value={project.govSupportReceived} unit="万元" />
+              <NumStat label="单位计划投入（5年）" value={project.plannedInvestmentByOrg} unit="万元" />
+            </div>
+          </div>
+
+          {/* Org Info */}
+          <div id="org" className="glass-card p-5 space-y-4">
+            <SecTitle>用人单位</SecTitle>
+            <div className="grid grid-cols-2 gap-x-6 gap-y-2 sm:grid-cols-3">
+              <InfoRow label="单位全称" value={o.name} className="col-span-2 sm:col-span-1" />
+              <InfoRow label="单位类型" value={o.orgType} />
+              <InfoRow label="统一社会信用代码" value={o.creditCode} />
+              <InfoRow label="成立时间" value={o.establishedDate} />
+              <InfoRow label="注册资本" value={o.registeredCapital > 0 ? `${o.registeredCapital} 万元` : '—'} />
+              <InfoRow label="员工总数" value={o.totalEmployees > 0 ? `${o.totalEmployees} 人` : '—'} />
+              <InfoRow label="联系人" value={o.contactPerson} />
+              <InfoRow label="联系人手机" value={o.contactPhone} />
+              <InfoRow label="地址" value={o.address} className="col-span-2" />
+            </div>
+            <TextBlock label="单位简介" value={o.orgBrief} />
+            <div className="grid grid-cols-2 gap-x-6 gap-y-2 sm:grid-cols-4 pt-3 border-t border-slate-100">
+              {/* rdExpenditure — needs verification to count in radar */}
+              <div>
+                <span className="text-xs text-slate-400">年研发投入</span>
+                <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                  <p className="text-sm font-semibold text-slate-700">
+                    {o.rdExpenditure > 0 ? `${o.rdExpenditure} 万元` : '—'}
+                  </p>
+                  <VerificationBadge status={project.verificationStatus.rdExpenditure} />
+                </div>
+                {project.verificationStatus.rdExpenditure !== 'verified' && (
+                  <button
+                    disabled={verifyingField === 'rdExpenditure'}
+                    onClick={() => handleVerify('rdExpenditure')}
+                    className="text-[10px] text-brand-blue hover:underline disabled:opacity-50 mt-0.5"
+                  >
+                    {verifyingField === 'rdExpenditure' ? '提交中…' : '申请验证 →'}
+                  </button>
+                )}
+              </div>
+              <InfoRow label="研发经费占比" value={o.rdRevenueRatio > 0 ? `${o.rdRevenueRatio}%` : '—'} />
+              <InfoRow label="研发人员数" value={o.rdPersonnelCount > 0 ? `${o.rdPersonnelCount} 人` : '—'} />
+              <InfoRow label="发明专利数" value={`${o.orgInventionPatentCount} 件`} />
+              {/* totalRevenue — needs verification to count in maturity score */}
+              <div>
+                <span className="text-xs text-slate-400">年营业收入</span>
+                <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                  <p className="text-sm font-semibold text-slate-700">
+                    {o.totalRevenue > 0 ? `${o.totalRevenue} 万元` : '—'}
+                  </p>
+                  <VerificationBadge status={project.verificationStatus.totalRevenue} />
+                </div>
+                {project.verificationStatus.totalRevenue !== 'verified' && (
+                  <button
+                    disabled={verifyingField === 'totalRevenue'}
+                    onClick={() => handleVerify('totalRevenue')}
+                    className="text-[10px] text-brand-blue hover:underline disabled:opacity-50 mt-0.5"
+                  >
+                    {verifyingField === 'totalRevenue' ? '提交中…' : '申请验证 →'}
+                  </button>
+                )}
+              </div>
+              <InfoRow label="上年度利润" value={`${o.lastYearProfit} 万元`} />
+              {/* totalFunding — needs verification to count in radar */}
+              <div>
+                <span className="text-xs text-slate-400">累计融资</span>
+                <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                  <p className="text-sm font-semibold text-slate-700">
+                    {o.totalFunding > 0 ? `${o.totalFunding} 万元` : '—'}
+                  </p>
+                  <VerificationBadge status={project.verificationStatus.totalFunding} />
+                </div>
+                {project.verificationStatus.totalFunding !== 'verified' && (
+                  <button
+                    disabled={verifyingField === 'totalFunding'}
+                    onClick={() => handleVerify('totalFunding')}
+                    className="text-[10px] text-brand-blue hover:underline disabled:opacity-50 mt-0.5"
+                  >
+                    {verifyingField === 'totalFunding' ? '提交中…' : '申请验证 →'}
+                  </button>
+                )}
+              </div>
+              <InfoRow label="融资轮次" value={o.fundingRound} />
+            </div>
+            <div className="pt-3 border-t border-slate-100">
+              <RepeatableCollection
+                schema={ORG_HONOR_SCHEMA}
+                items={o.honors as CollectionItem[]}
+                onChange={(items) => saveWithDiff({ orgInfo: { ...o, honors: items as unknown as OrgHonor[] } }, '更新单位荣誉')}
+              />
+            </div>
+          </div>
+
+          {/* ── 功能/记录区 ─────────────────────────────────────────────── */}
+
+          {/* Registrations */}
+          <div id="registrations" className="glass-card p-5">
+            <div className="flex items-center justify-between mb-4">
+              <SecTitle>报名记录</SecTitle>
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-slate-400">{project.registrations.length} 次</span>
+                <button
+                  onClick={() => navigate(`/project/${id}/apply`)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-blue text-white rounded-lg text-xs font-bold hover:bg-brand-blue/90 transition-colors"
+                >
+                  <Trophy className="w-3 h-3" /> 新建报名
+                </button>
+              </div>
+            </div>
+            {project.registrations.length === 0 ? (
+              <div className="flex flex-col items-center py-8 text-slate-400 gap-2">
+                <Trophy className="w-8 h-8" />
+                <p className="text-sm">暂无报名记录</p>
+                <button
+                  onClick={() => navigate(`/project/${id}/apply`)}
+                  className="text-xs text-brand-blue hover:underline"
+                >
+                  去报名赛事 →
+                </button>
+              </div>
+            ) : (
+              <div className="overflow-x-auto -mx-5 px-5">
+                <table className="w-full text-sm min-w-[720px]">
+                  <thead>
+                    <tr className="border-b border-slate-100">
+                      {['赛事', '项目申报名', '专业领域', '成员数', '申报状态', '破格通道', '操作'].map((h) => (
+                        <th key={h} className="text-left text-xs font-bold text-slate-400 pb-2.5 pr-4 last:pr-0 whitespace-nowrap">
+                          {h}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {project.registrations.map((reg) => (
+                      <RegistrationRow key={reg.id} reg={reg} projectId={id!} />
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+          {/* Timeline */}
+          <div id="timeline" className="glass-card p-5">
+            {/* Header row — collapse toggle + compare mode toggle */}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setTimelineOpen((v) => !v)}
+                className="flex items-center gap-2 flex-1 min-w-0 text-left"
+              >
+                <span className="flex-1 text-xs font-bold text-slate-400 uppercase tracking-widest">
+                  成长时间线
+                </span>
+                <span className="text-xs text-slate-400 flex-shrink-0">
+                  {timelineOpen ? '收起' : `展开 · ${sortedEvents.length} 条`}
+                </span>
+                <ChevronDown className={cn('w-3.5 h-3.5 text-slate-400 transition-transform flex-shrink-0', timelineOpen && 'rotate-180')} />
+              </button>
+              {timelineOpen && (
+                <button
+                  onClick={() => {
+                    setCompareMode((v) => !v)
+                    setSelectedForCompare([])
+                    setComparisonResult(null)
+                  }}
+                  className={cn(
+                    'flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg border flex-shrink-0 transition-colors',
+                    compareMode
+                      ? 'bg-brand-blue/10 text-brand-blue border-brand-blue/30 font-bold'
+                      : 'text-slate-400 border-slate-200 hover:bg-slate-50',
+                  )}
+                >
+                  <ArrowLeftRight className="w-3 h-3" />
+                  {compareMode ? `已选 ${selectedForCompare.length}/2` : '快照对比'}
+                </button>
+              )}
+            </div>
+
+            {timelineOpen && (
+              <div className="mt-4">
+                {/* Compare mode panel */}
+                {compareMode && (
+                  <div className="mb-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 space-y-3">
+                    {!compareNodeData ? (
+                      <p className="text-xs text-slate-400 text-center py-1">
+                        请在下方选择两个有快照的节点（标有「已快照」）进行对比
+                      </p>
+                    ) : (
+                      <>
+                        <div className="flex items-start justify-between gap-3 flex-wrap">
+                          <div className="text-xs text-slate-600 space-y-1">
+                            <p>
+                              <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-brand-blue text-white text-[10px] font-bold mr-1.5">1</span>
+                              {compareNodeData.first.timestamp.slice(0, 10)} · {compareNodeData.first.description}
+                            </p>
+                            <p>
+                              <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-brand-blue text-white text-[10px] font-bold mr-1.5">2</span>
+                              {compareNodeData.second.timestamp.slice(0, 10)} · {compareNodeData.second.description}
+                            </p>
+                          </div>
+                          <button
+                            onClick={handleGenerateComparison}
+                            disabled={comparisonLoading}
+                            className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-brand-blue text-white rounded-lg font-bold disabled:opacity-50 hover:bg-brand-blue/90 transition-colors flex-shrink-0"
+                          >
+                            <Sparkles className="w-3.5 h-3.5" />
+                            {comparisonLoading ? '分析中…' : comparisonResult ? '重新分析' : '查看成长对比'}
+                          </button>
+                        </div>
+                        {/* Radar delta chips */}
+                        {(() => {
+                          const { snapA, snapB } = compareNodeData
+                          const deltas = ([
+                            snapB.radar.teamSize               !== snapA.radar.teamSize               ? { label: '团队',  from: `${snapA.radar.teamSize}人`,               to: `${snapB.radar.teamSize}人` } : null,
+                            snapB.radar.patentCount            !== snapA.radar.patentCount            ? { label: '专利',  from: `${snapA.radar.patentCount}件`,             to: `${snapB.radar.patentCount}件` } : null,
+                            snapB.radar.softwareCopyrightCount !== snapA.radar.softwareCopyrightCount ? { label: '软著',  from: `${snapA.radar.softwareCopyrightCount}件`,  to: `${snapB.radar.softwareCopyrightCount}件` } : null,
+                            snapB.radar.paperCount             !== snapA.radar.paperCount             ? { label: '论文',  from: `${snapA.radar.paperCount}篇`,              to: `${snapB.radar.paperCount}篇` } : null,
+                            snapB.radar.totalFunding           !== snapA.radar.totalFunding           ? { label: '融资额', from: `${snapA.radar.totalFunding}万`,           to: `${snapB.radar.totalFunding}万` } : null,
+                            snapB.radar.maturityScore          !== snapA.radar.maturityScore          ? { label: '成熟度', from: `${snapA.radar.maturityScore}分`,          to: `${snapB.radar.maturityScore}分` } : null,
+                          ] as ({ label: string; from: string; to: string } | null)[]).filter((d): d is { label: string; from: string; to: string } => d !== null)
+                          if (!deltas.length) return null
+                          return (
+                            <div className="flex flex-wrap gap-1.5">
+                              {deltas.map((d) => (
+                                <span key={d.label} className="text-xs bg-white border border-slate-200 rounded-lg px-2 py-1">
+                                  <span className="text-slate-400 mr-0.5">{d.label}</span>
+                                  <span className="line-through text-red-400">{d.from}</span>
+                                  <span className="text-slate-400 mx-0.5">→</span>
+                                  <span className="text-emerald-600 font-semibold">{d.to}</span>
+                                </span>
+                              ))}
+                            </div>
+                          )
+                        })()}
+                        {comparisonLoading && (
+                          <div className="flex items-center gap-2 text-slate-400 text-xs pt-1">
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            AI 正在分析对比区间…
+                          </div>
+                        )}
+                        {comparisonResult && (
+                          <p className="text-sm text-slate-700 leading-[1.9] bg-white rounded-xl p-3 border border-slate-100">
+                            {comparisonResult}
+                          </p>
+                        )}
+                      </>
+                    )}
+                  </div>
+                )}
+
+                {sortedEvents.length === 0 ? (
+                  <p className="text-sm text-slate-400 text-center py-6">暂无事件</p>
+                ) : (
+                  sortedEvents.map((ev, idx) => {
+                    const isApply = ev.type === '报名'
+                    const isRollback = ev.type === '回退'
+                    const isLast = idx === sortedEvents.length - 1
+                    const hasSnap = !!project!.snapshots[ev.snapshotId]
+                    const isSelected = selectedForCompare.includes(ev.id)
+                    const selectIdx = selectedForCompare.indexOf(ev.id)
+
+                    return (
+                      <div
+                        key={ev.id}
+                        className={cn(
+                          'flex gap-4',
+                          isSelected && compareMode && 'bg-brand-blue/5 -mx-1 px-1 rounded-xl',
+                        )}
+                      >
+                        <div className="flex flex-col items-center">
+                          {compareMode ? (
+                            <button
+                              disabled={!hasSnap}
+                              onClick={() => toggleCompareSelection(ev.id)}
+                              className={cn(
+                                'w-8 h-8 rounded-full border-2 flex items-center justify-center flex-shrink-0 z-10 transition-all',
+                                isSelected
+                                  ? 'border-brand-blue bg-brand-blue text-white'
+                                  : hasSnap
+                                    ? 'border-slate-300 bg-white hover:border-brand-blue cursor-pointer'
+                                    : 'border-slate-200 bg-slate-50 cursor-not-allowed opacity-40',
+                              )}
+                            >
+                              {isSelected
+                                ? <span className="text-xs font-bold">{selectIdx + 1}</span>
+                                : <span className={cn('w-3 h-3 rounded-full', hasSnap ? 'bg-slate-300' : 'bg-slate-200')} />}
+                            </button>
+                          ) : (
+                            <div className={cn(
+                              'w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 z-10',
+                              isApply    ? 'bg-brand-blue text-white'    :
+                              isRollback ? 'bg-amber-100 text-amber-600' :
+                                           'bg-slate-100 text-slate-500',
+                            )}>
+                              {isApply
+                                ? <Trophy className="w-3.5 h-3.5" />
+                                : isRollback
+                                  ? <RotateCcw className="w-3.5 h-3.5" />
+                                  : <Pencil className="w-3.5 h-3.5" />}
+                            </div>
+                          )}
+                          {!isLast && <div className="w-px flex-1 bg-slate-100 mt-1" />}
+                        </div>
+
+                        <div className="pb-6 flex-1 min-w-0">
+                          <div className="flex items-start gap-2 flex-wrap">
+                            <p className="text-sm font-semibold text-slate-800 flex-1">{ev.description}</p>
+                            <button
+                              onClick={() => setDetailEvent(ev)}
+                              className="flex items-center gap-1 text-xs text-brand-blue hover:underline flex-shrink-0"
+                            >
+                              <Info className="w-3 h-3" />
+                              查看详情
+                            </button>
+                          </div>
+
+                          <p className="text-xs text-slate-400 mt-0.5 flex items-center gap-1">
+                            <Clock className="w-3 h-3" />
+                            {ev.timestamp.slice(0, 16).replace('T', ' ')}
+                            <span className={cn(
+                              'ml-2 px-1.5 py-0.5 rounded text-[10px] font-bold',
+                              isApply    ? 'bg-brand-blue/10 text-brand-blue' :
+                              isRollback ? 'bg-amber-100 text-amber-600'      :
+                                           'bg-slate-100 text-slate-500',
+                            )}>
+                              {ev.type}
+                            </span>
+                            {hasSnap && (
+                              <span className="ml-1 px-1.5 py-0.5 rounded text-[10px] bg-slate-50 text-slate-400">
+                                已快照
+                              </span>
+                            )}
+                          </p>
+
+                          {ev.changes.length > 0 && (
+                            <div className="mt-2 space-y-2 bg-slate-50/70 rounded-xl px-3 py-2">
+                              {ev.changes.map((c, ci) => (
+                                <FieldChangeDiff key={ci} c={c} inline />
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })
+                )}
+              </div>
+            )}
+          </div>
+
+        </div>
       </div>
 
-      {/* Modals */}
-      {snapshotEvent && <SnapshotModal event={snapshotEvent} onClose={() => setSnapshotEvent(null)} />}
       {editOpen && (
-        <EditProjectModal project={project} onClose={() => setEditOpen(false)} onSave={handleEditSave} />
+        <EditProjectInfoModal
+          project={project}
+          onClose={() => setEditOpen(false)}
+          onSave={handleEditSave}
+        />
       )}
-      {rollbackEvent && (
-        <RollbackDialog
-          event={rollbackEvent}
-          checked={rollbackChecked}
-          onToggle={handleToggleRollback}
-          onConfirm={handleConfirmRollback}
-          onClose={() => setRollbackEvent(null)}
+
+      {detailEvent && (
+        <EventDetailModal
+          event={detailEvent}
+          snapshot={project!.snapshots[detailEvent.snapshotId]}
+          onClose={() => setDetailEvent(null)}
+          onRollback={() => handleRollback(detailEvent)}
         />
       )}
     </>

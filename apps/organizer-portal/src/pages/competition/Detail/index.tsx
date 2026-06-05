@@ -7,6 +7,7 @@ import { competitionApi } from '@bochuangyuan/api'
 import type { CompetitionStatus } from '@bochuangyuan/types'
 
 const TABS = [
+  { label: '流程总览', to: 'pipeline' },
   { label: '基本信息', to: 'basic-info' },
   { label: '赛事项目', to: 'projects' },
 ]

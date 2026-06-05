@@ -5,6 +5,19 @@ import type { Registration, RegistrationStatus } from '@bochuangyuan/types'
 import { Search, Clock, Lock } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
+const MOCK_REGISTRATIONS: Registration[] = [
+  { regId: 'reg-001', competitionId: 'comp-1', projectId: 'AI 分布式算力平台',    userId: '张明',   formValues: { 赛道: '人工智能',  团队规模: '5 人' }, regType: 'Team',       status: 'PendingReview',  submittedAt: '2024-05-10T08:30:00Z' },
+  { regId: 'reg-002', competitionId: 'comp-1', projectId: '碳中和智能监测系统',   userId: '李华',   formValues: { 赛道: '双碳环保',  团队规模: '4 人' }, regType: 'Team',       status: 'Approved',       submittedAt: '2024-05-08T14:20:00Z' },
+  { regId: 'reg-003', competitionId: 'comp-1', projectId: '医疗影像 AI 辅助诊断', userId: '王芳',   formValues: { 赛道: '医疗健康', 团队规模: '6 人' }, regType: 'Team',       status: 'Locked',         submittedAt: '2024-05-07T10:00:00Z', lockedAt: '2024-05-12T09:00:00Z' },
+  { regId: 'reg-004', competitionId: 'comp-1', projectId: '智慧农业物联网平台',   userId: '陈刚',   formValues: { 赛道: '农业科技', 团队规模: '3 人' }, regType: 'Team',       status: 'PendingReview',  submittedAt: '2024-05-11T16:45:00Z' },
+  { regId: 'reg-005', competitionId: 'comp-1', projectId: '区块链供应链溯源',     userId: '赵磊',   formValues: { 赛道: '区块链',   团队规模: '4 人' }, regType: 'Team',       status: 'Approved',       submittedAt: '2024-05-06T09:15:00Z' },
+  { regId: 'reg-006', competitionId: 'comp-1', projectId: '新能源汽车充电桩系统', userId: '孙丽',   formValues: { 赛道: '新能源',   团队规模: '5 人' }, regType: 'Team',       status: 'UnderReview',    submittedAt: '2024-05-12T11:00:00Z' },
+  { regId: 'reg-007', competitionId: 'comp-1', projectId: '智能家居控制中枢',     userId: '周勇',   formValues: { 赛道: '智能硬件', 团队规模: '3 人' }, regType: 'Individual', status: 'Rejected',       submittedAt: '2024-05-09T13:30:00Z' },
+  { regId: 'reg-008', competitionId: 'comp-1', projectId: '在线职业教育平台',     userId: '吴静',   formValues: { 赛道: '教育科技', 团队规模: '4 人' }, regType: 'Team',       status: 'PendingReview',  submittedAt: '2024-05-13T08:00:00Z' },
+  { regId: 'reg-009', competitionId: 'comp-1', projectId: '跨境电商 SaaS 工具',   userId: '郑涛',   formValues: { 赛道: '电子商务', 团队规模: '6 人' }, regType: 'Team',       status: 'PrelimRegDone',  submittedAt: '2024-05-05T10:20:00Z' },
+  { regId: 'reg-010', competitionId: 'comp-1', projectId: '工业检测视觉系统',     userId: '冯雪',   formValues: { 赛道: '工业互联', 团队规模: '5 人' }, regType: 'Team',       status: 'Approved',       submittedAt: '2024-05-08T15:00:00Z' },
+]
+
 const STATUS_LABEL: Record<RegistrationStatus, string> = {
   PreReg: '预报名',
   PendingReview: '待审核',
@@ -39,9 +52,12 @@ export default function RegistrationListPage() {
   const load = () => {
     if (!competitionId) return
     registrationApi.list(competitionId).then((page) => {
-      setRegistrations(page.list)
+      setRegistrations(page.list.length > 0 ? page.list : MOCK_REGISTRATIONS)
       setLoading(false)
-    }).catch(() => setLoading(false))
+    }).catch(() => {
+      setRegistrations(MOCK_REGISTRATIONS)
+      setLoading(false)
+    })
   }
 
   useEffect(() => { load() }, [competitionId])

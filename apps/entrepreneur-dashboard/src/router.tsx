@@ -12,6 +12,7 @@ const ProjectDashboardPage        = lazy(() => import('@/pages/project/dashboard
 const ProjectRegistrationPage     = lazy(() => import('@/pages/project/registration'))
 const ProjectEditorPage           = lazy(() => import('@/pages/project/editor'))
 const ProjectVersionPage          = lazy(() => import('@/pages/project/version'))
+const CollectionsDemoPage         = lazy(() => import('@/pages/project/collections-demo'))
 const ProjectApplyPage            = lazy(() => import('@/pages/project/apply'))
 const EnterpriseInfoPage      = lazy(() => import('@/pages/enterprise/info'))
 const EnterpriseHonorPage     = lazy(() => import('@/pages/enterprise/honor'))
@@ -32,6 +33,8 @@ const FormalRegPage           = lazy(() => import('@/pages/competition/FormalReg
 const RegistrationStatusPage  = lazy(() => import('@/pages/competition/RegistrationStatus'))
 // My registrations list (implied by M06 pattern)
 const MyRegistrationsPage     = lazy(() => import('@/pages/competition/MyRegistrations'))
+// 破格通道申请
+const GreenChannelPage        = lazy(() => import('@/pages/competition/GreenChannel'))
 // Placeholders for M07~M10 (P4-P7)
 const CompetitionProgressPage = lazy(() => import('@/pages/competition/Progress'))
 const CompetitionResultsPage  = lazy(() => import('@/pages/competition/Results'))
@@ -75,6 +78,7 @@ export const router = createBrowserRouter([
           { path: 'profile',                  element: <ProfilePage /> },
           { path: 'project',                  element: <ProjectListPage /> },
           { path: 'project/new',                        element: <ProjectNewPage /> },
+          { path: 'project/collections-demo',           element: <CollectionsDemoPage /> },
           { path: 'project/bp',                         element: <ProjectEditorPage /> },
           { path: 'project/:id',                        element: <ProjectDashboardPage /> },
           { path: 'project/:id/registration/:regId',    element: <ProjectRegistrationPage /> },
@@ -100,6 +104,8 @@ export const router = createBrowserRouter([
           { path: 'competition/registrations/:regId', element: <RegistrationStatusPage /> },
           // M05 正式报名
           { path: 'competition/registrations/:regId/formal', element: <FormalRegPage /> },
+          // 破格通道申请
+          { path: 'competition/registrations/:regId/green-channel', element: <GreenChannelPage /> },
           // M07 比赛进展 (placeholder)
           { path: 'competition/progress',     element: <CompetitionProgressPage /> },
           { path: 'competition/mine/:id/progress', element: <CompetitionProgressPage /> },

@@ -5,6 +5,45 @@ import type { Registration, QualificationReview, ManualResult } from '@bochuangy
 import { CheckCircle2, XCircle, AlertCircle, Clock, ChevronDown, ChevronUp } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
+interface RegWithReviewMock extends Registration {
+  qualReview?: QualificationReview
+}
+
+const MOCK_ITEMS: RegWithReviewMock[] = [
+  {
+    regId: 'reg-001', competitionId: 'comp-1', projectId: 'AI 分布式算力平台',    userId: '张明',
+    formValues: { 项目名称: 'AI 分布式算力平台', 赛道: '人工智能', 企业类型: '初创公司', 注册资本: '500 万', 成立时间: '2022-03' },
+    regType: 'Team', status: 'PendingReview', submittedAt: '2024-05-10T08:30:00Z',
+  },
+  {
+    regId: 'reg-004', competitionId: 'comp-1', projectId: '智慧农业物联网平台',   userId: '陈刚',
+    formValues: { 项目名称: '智慧农业物联网平台', 赛道: '农业科技', 企业类型: '科技公司', 注册资本: '300 万', 成立时间: '2023-01' },
+    regType: 'Team', status: 'PendingReview', submittedAt: '2024-05-11T16:45:00Z',
+  },
+  {
+    regId: 'reg-006', competitionId: 'comp-1', projectId: '新能源汽车充电桩系统', userId: '孙丽',
+    formValues: { 项目名称: '新能源汽车充电桩系统', 赛道: '新能源', 企业类型: '有限公司', 注册资本: '1000 万', 成立时间: '2021-06' },
+    regType: 'Team', status: 'UnderReview', submittedAt: '2024-05-12T11:00:00Z',
+  },
+  {
+    regId: 'reg-008', competitionId: 'comp-1', projectId: '在线职业教育平台',     userId: '吴静',
+    formValues: { 项目名称: '在线职业教育平台', 赛道: '教育科技', 企业类型: '初创公司', 注册资本: '200 万', 成立时间: '2023-09' },
+    regType: 'Team', status: 'PendingReview', submittedAt: '2024-05-13T08:00:00Z',
+  },
+  {
+    regId: 'reg-002', competitionId: 'comp-1', projectId: '碳中和智能监测系统',   userId: '李华',
+    formValues: { 项目名称: '碳中和智能监测系统', 赛道: '双碳环保', 企业类型: '高新企业', 注册资本: '800 万', 成立时间: '2020-11' },
+    regType: 'Team', status: 'Approved', submittedAt: '2024-05-08T14:20:00Z',
+    qualReview: { reviewId: 'qr-002', regId: 'reg-002', manualResult: 'Pass', status: 'Approved' },
+  },
+  {
+    regId: 'reg-007', competitionId: 'comp-1', projectId: '智能家居控制中枢',     userId: '周勇',
+    formValues: { 项目名称: '智能家居控制中枢', 赛道: '智能硬件', 企业类型: '个人', 注册资本: '—', 成立时间: '—' },
+    regType: 'Individual', status: 'Rejected', submittedAt: '2024-05-09T13:30:00Z',
+    qualReview: { reviewId: 'qr-007', regId: 'reg-007', manualResult: 'Reject', rejectReason: '材料不完整，缺少营业执照', status: 'Rejected' },
+  },
+]
+
 const RESULT_CONFIG: Record<ManualResult, { label: string; color: string; icon: React.ElementType }> = {
   Pass: { label: '通过', color: 'text-emerald-600 bg-emerald-50', icon: CheckCircle2 },
   Missing: { label: '材料缺失', color: 'text-amber-600 bg-amber-50', icon: AlertCircle },
@@ -20,6 +59,7 @@ export default function QualificationReviewPage() {
   const { id: competitionId } = useParams<{ id: string }>()
   const [items, setItems] = useState<RegWithReview[]>([])
   const [loading, setLoading] = useState(true)
+
   const [expanded, setExpanded] = useState<string | null>(null)
   const [reviewing, setReviewing] = useState<string | null>(null)
   const [rejectReason, setRejectReason] = useState('')
@@ -27,6 +67,7 @@ export default function QualificationReviewPage() {
   useEffect(() => {
     if (!competitionId) return
     registrationApi.list(competitionId, { status: 'PendingReview' }).then(async (page) => {
+      if (page.list.length === 0) { setItems(MOCK_ITEMS); setLoading(false); return }
       const withReviews = await Promise.all(
         page.list.map(async (reg) => {
           try {
@@ -39,7 +80,7 @@ export default function QualificationReviewPage() {
       )
       setItems(withReviews)
       setLoading(false)
-    }).catch(() => setLoading(false))
+    }).catch(() => { setItems(MOCK_ITEMS); setLoading(false) })
   }, [competitionId])
 
   const handleReview = async (regId: string, result: ManualResult) => {
