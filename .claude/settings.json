@@ -130,7 +130,23 @@
       "PowerShell(Get-ChildItem -Path \"d:\\\\Bochuangyuan-Frontend\\\\docs\\\\bp-review-agent\" -Force | Where-Object { $_.Name -ne '.venv' } | Select-Object Name, Mode | Format-Table -AutoSize)",
       "PowerShell(Get-ChildItem -Path \"d:\\\\Bochuangyuan-Frontend\\\\docs\\\\bp-review-agent\\\\bp-review-agent\" -Force | Where-Object { $_.Name -ne '.venv' } | Select-Object Name, Mode | Format-Table -AutoSize)",
       "PowerShell(Get-ChildItem -Path \"d:\\\\Bochuangyuan-Frontend\\\\packages\" -Force | ForEach-Object { Get-ChildItem -Path $_.FullName -Depth 1 -Force | Where-Object { $_.Mode -match 'd' -and $_.Name -ne 'node_modules' -and $_.Name -ne '.turbo' } | Select-Object @{Name=\"Package\"; Expression={$_.Parent.Name}}, Name } | Format-Table -AutoSize)",
-      "PowerShell(Get-ChildItem -Path \"d:\\\\Bochuangyuan-Frontend\\\\apps\" -Force | ForEach-Object { @{Name=$_.Name; Files=\\(Get-ChildItem -Path $_.FullName -Force | Where-Object { -not $_.PSIsContainer -and $_.Name -match 'package\\\\.json|\\\\.env\\\\.example|README' } | Select-Object -ExpandProperty Name\\) -join ', '} } | Format-Table -AutoSize)"
+      "PowerShell(Get-ChildItem -Path \"d:\\\\Bochuangyuan-Frontend\\\\apps\" -Force | ForEach-Object { @{Name=$_.Name; Files=\\(Get-ChildItem -Path $_.FullName -Force | Where-Object { -not $_.PSIsContainer -and $_.Name -match 'package\\\\.json|\\\\.env\\\\.example|README' } | Select-Object -ExpandProperty Name\\) -join ', '} } | Format-Table -AutoSize)",
+      "Bash(git clone *)",
+      "Read(//tmp/allm/advanced_ai_agents/multi_agent_apps/agent_teams/**)",
+      "Read(//tmp/pitch/src/pitch/**)",
+      "Read(//tmp/**)",
+      "Bash(wslpath -u 'd:\\\\Bochuangyuan-Frontend\\\\docs\\\\bp-review-agent\\\\bp-review-agent')",
+      "Read(//Bochuangyuan-Frontend/docs/**)",
+      "Read(//d//**)",
+      "WebFetch(domain:google.github.io)",
+      "WebSearch",
+      "WebFetch(domain:adk.dev)",
+      "WebFetch(domain:docs.litellm.ai)",
+      "WebFetch(domain:www.leoniemonigatti.com)",
+      "Bash(New-Item -ItemType File \"d:/Bochuangyuan-Frontend/services/bp-review-agent/samples/.gitkeep\" -Force)",
+      "Bash(Out-Null)",
+      "Bash(New-Item -ItemType File \"d:/Bochuangyuan-Frontend/services/bp-review-agent/outputs/.gitkeep\" -Force)",
+      "Bash(python -m src.main --file samples/sample_bp.txt --compare --dry-run)"
     ],
     "additionalDirectories": [
       "d:\\Bochuangyuan-Frontend\\apps\\entrepreneur-dashboard\\src"

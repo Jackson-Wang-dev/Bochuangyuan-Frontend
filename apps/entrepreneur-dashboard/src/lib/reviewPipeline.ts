@@ -1,6 +1,6 @@
 import { llmChat } from './llmClient'
 
-// ─── Agent configs (ported from docs/bp-review-agent/config/agents.yaml) ──────
+// ─── Agent configs ────────────────────────────────────────────────────────────
 
 const AGENTS = {
   expert: {
@@ -56,7 +56,7 @@ const AGENTS = {
 
 type Perspective = keyof typeof AGENTS
 
-// ─── Historical feedback (ported from knowledge/historical_feedback.md) ───────
+// ─── Historical feedback ──────────────────────────────────────────────────────
 
 const HISTORICAL_FEEDBACK = `## 通用评审准则（来自历史项目复盘）
 - 凡是市场规模只给 TAM、不拆 SAM/SOM 的，一律要求补充可达市场口径，并提示有"画大饼"嫌疑。
