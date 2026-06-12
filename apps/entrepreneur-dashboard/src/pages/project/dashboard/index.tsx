@@ -1,9 +1,14 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
   ArrowLeft, Trophy, Pencil, ChevronDown, Clock, Brain, X, Save, Eye, Copy, FileText,
   RotateCcw, Info, Sparkles, Loader2, ArrowLeftRight, ShieldCheck, ShieldAlert, Shield, Upload,
+  Download, FolderOpen,
 } from 'lucide-react'
+import { documentsApi } from '@bochuangyuan/api'
+import type { DocumentResponse } from '@bochuangyuan/api'
+import { getProject } from '@/api/project'
+import { apiToProject } from '@/api/projectMapper'
 import {
   RadarChart, PolarGrid, PolarAngleAxis, Radar, ResponsiveContainer,
 } from 'recharts'
@@ -347,6 +352,7 @@ const NAV_SECTIONS = [
   { id: 'investment',   label: '投入预测' },
   { id: 'org',          label: '用人单位' },
   { id: 'registrations',label: '报名记录' },
+  { id: 'files',        label: '项目文件' },
   { id: 'timeline',     label: '时间线' },
 ]
 
@@ -632,12 +638,180 @@ function EditProjectInfoModal({
   )
 }
 
+// ── Project Files Panel ───────────────────────────────────────────────────────
+
+const DOC_TYPE_TABS: { value: string | undefined; label: string }[] = [
+  { value: undefined,          label: '全部' },
+  { value: 'business_plan',    label: '商业计划书' },
+  { value: 'contest_template', label: '赛事模板' },
+  { value: 'submission',       label: '申报材料' },
+]
+
+const DOC_TYPE_LABELS: Record<string, string> = {
+  business_plan:    '商业计划书',
+  contest_template: '赛事模板',
+  submission:       '申报材料',
+}
+
+const DOC_TYPE_COLORS: Record<string, string> = {
+  business_plan:    'bg-blue-100 text-blue-600',
+  contest_template: 'bg-purple-100 text-purple-600',
+  submission:       'bg-emerald-100 text-emerald-600',
+}
+
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+}
+
+function ProjectFilesPanel() {
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [docs, setDocs] = useState<DocumentResponse[]>([])
+  const [loadingDocs, setLoadingDocs] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const [filesError, setFilesError] = useState<string | null>(null)
+  const [activeType, setActiveType] = useState<string | undefined>(undefined)
+  const [uploadType, setUploadType] = useState('business_plan')
+
+  useEffect(() => {
+    setLoadingDocs(true)
+    setFilesError(null)
+    documentsApi.list(activeType)
+      .then(setDocs)
+      .catch(() => setFilesError('获取文件列表失败，请刷新重试'))
+      .finally(() => setLoadingDocs(false))
+  }, [activeType])
+
+  async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploading(true)
+    setFilesError(null)
+    try {
+      const doc = await documentsApi.upload(file, uploadType)
+      setDocs((prev) => [doc, ...prev])
+    } catch {
+      setFilesError('上传失败，请重试')
+    } finally {
+      setUploading(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
+
+  async function handleDownload(doc: DocumentResponse) {
+    try {
+      const url = await documentsApi.download(doc.id)
+      window.open(url, '_blank')
+    } catch {
+      setFilesError('下载失败，请重试')
+    }
+  }
+
+  return (
+    <div id="files" className="glass-card p-5">
+      <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
+        <SecTitle>项目文件</SecTitle>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <select
+            value={uploadType}
+            onChange={(e) => setUploadType(e.target.value)}
+            className="text-xs border border-slate-200 rounded-lg px-2 py-1.5 text-slate-600 bg-white focus:outline-none focus:ring-2 focus:ring-brand-blue/20"
+          >
+            <option value="business_plan">商业计划书</option>
+            <option value="contest_template">赛事模板</option>
+            <option value="submission">申报材料</option>
+          </select>
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploading}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-blue text-white rounded-lg text-xs font-bold hover:bg-brand-blue/90 disabled:opacity-50 transition-colors"
+          >
+            {uploading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
+            {uploading ? '上传中…' : '上传文件'}
+          </button>
+          <input ref={fileInputRef} type="file" className="hidden" onChange={handleUpload} />
+        </div>
+      </div>
+
+      {/* Type filter tabs */}
+      <div className="flex gap-1.5 mb-3 flex-wrap">
+        {DOC_TYPE_TABS.map((tab) => (
+          <button
+            key={String(tab.value)}
+            onClick={() => setActiveType(tab.value)}
+            className={cn(
+              'text-xs px-3 py-1 rounded-full font-medium transition-colors',
+              activeType === tab.value
+                ? 'bg-brand-blue text-white'
+                : 'bg-slate-100 text-slate-500 hover:bg-slate-200',
+            )}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {filesError && (
+        <p className="text-xs text-red-400 mb-3">{filesError}</p>
+      )}
+
+      {loadingDocs ? (
+        <div className="flex items-center justify-center py-10">
+          <div className="w-5 h-5 border-2 border-brand-blue border-t-transparent rounded-full animate-spin" />
+        </div>
+      ) : docs.length === 0 ? (
+        <div className="flex flex-col items-center py-10 text-slate-400 gap-2">
+          <FolderOpen className="w-8 h-8" />
+          <p className="text-sm">暂无文件</p>
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="text-xs text-brand-blue hover:underline"
+          >
+            上传第一个文件 →
+          </button>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {docs.map((doc) => (
+            <div
+              key={doc.id}
+              className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl hover:bg-slate-100 transition-colors group"
+            >
+              <FileText className="w-4 h-4 text-slate-400 flex-shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-slate-700 truncate">{doc.name}</p>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  {formatFileSize(doc.size)} · v{doc.version} · {doc.created_at.slice(0, 10)}
+                </p>
+              </div>
+              <span className={cn(
+                'text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0',
+                DOC_TYPE_COLORS[doc.doc_type] ?? 'bg-slate-100 text-slate-500',
+              )}>
+                {DOC_TYPE_LABELS[doc.doc_type] ?? doc.doc_type}
+              </span>
+              <button
+                onClick={() => handleDownload(doc)}
+                title="下载"
+                className="p-1.5 text-slate-400 hover:text-brand-blue hover:bg-brand-blue/10 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+              >
+                <Download className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function ProjectDashboardPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { projectsV3, updateProjectV3, recordEditV3, recordRollbackV3, updateVerificationV3 } = useProjectDashboardStore()
+  const { projectsV3, addProjectV3, updateProjectV3, recordEditV3, recordRollbackV3, updateVerificationV3 } = useProjectDashboardStore()
   const [timelineOpen, setTimelineOpen] = useState(true)
   const [editOpen, setEditOpen] = useState(false)
   const [importOpen, setImportOpen] = useState(false)
@@ -658,10 +832,31 @@ export default function ProjectDashboardPage() {
 
   const project = projectsV3.find((p) => p.id === id)
 
+  const [projectFetching, setProjectFetching] = useState(false)
+  const [projectFetchError, setProjectFetchError] = useState(false)
+
+  useEffect(() => {
+    if (!id || projectsV3.find((p) => p.id === id)) return
+    setProjectFetching(true)
+    setProjectFetchError(false)
+    getProject(Number(id))
+      .then((api) => addProjectV3(apiToProject(api)))
+      .catch(() => setProjectFetchError(true))
+      .finally(() => setProjectFetching(false))
+  }, [id])
+
+  if (projectFetching) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <div className="w-6 h-6 border-2 border-brand-blue border-t-transparent rounded-full animate-spin" />
+      </div>
+    )
+  }
+
   if (!project) {
     return (
       <div className="flex flex-col items-center py-20 gap-3 text-slate-400">
-        <p className="text-sm">项目不存在</p>
+        <p className="text-sm">{projectFetchError ? '项目加载失败，请刷新重试' : '项目不存在'}</p>
         <button onClick={() => navigate('/project')} className="text-sm text-brand-blue hover:underline">
           返回项目列表
         </button>
@@ -1253,6 +1448,9 @@ export default function ProjectDashboardPage() {
               </div>
             )}
           </div>
+
+          {/* Files */}
+          <ProjectFilesPanel />
 
           {/* Timeline */}
           <div id="timeline" className="glass-card p-5">

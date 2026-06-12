@@ -1,7 +1,9 @@
-import { useRef } from 'react'
+import { useRef, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Plus, Users, Calendar, ChevronRight, ImagePlus, MapPin, Cpu } from 'lucide-react'
 import { useProjectDashboardStore } from '@/store/projectDashboardStore'
+import { listProjects } from '@/api/project'
+import { summaryToProject } from '@/api/projectMapper'
 import type { Project } from '@/types/project'
 import { cn } from '@/lib/utils'
 
@@ -144,7 +146,25 @@ function ProjectCard({ project }: { project: Project }) {
 
 export default function ProjectListPage() {
   const navigate = useNavigate()
-  const { projectsV3 } = useProjectDashboardStore()
+  const { projectsV3, setProjectsV3 } = useProjectDashboardStore()
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    setLoading(true)
+    listProjects()
+      .then((items) => setProjectsV3(items.map(summaryToProject)))
+      .catch(() => setError('获取项目列表失败，请刷新重试'))
+      .finally(() => setLoading(false))
+  }, [setProjectsV3])
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <div className="w-6 h-6 border-2 border-brand-blue border-t-transparent rounded-full animate-spin" />
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
@@ -164,7 +184,11 @@ export default function ProjectListPage() {
         </button>
       </div>
 
-      {projectsV3.length === 0 ? (
+      {error ? (
+        <div className="flex flex-col items-center py-20 text-red-400 gap-3">
+          <p className="text-sm">{error}</p>
+        </div>
+      ) : projectsV3.length === 0 ? (
         <div className="flex flex-col items-center py-20 text-slate-400 gap-3">
           <p className="text-sm">还没有项目，点击右上角新建</p>
         </div>

@@ -158,13 +158,11 @@ export const BPManager: React.FC<Props> = ({
                     <button
                       onClick={() => {
                         import('@bochuangyuan/api').then(({ documentsApi }) => {
-                          documentsApi.download(doc.id).then((blob) => {
-                            const url = URL.createObjectURL(blob)
+                          documentsApi.download(doc.id).then((url) => {
                             const a = document.createElement('a')
                             a.href = url
                             a.download = doc.name
                             a.click()
-                            URL.revokeObjectURL(url)
                           })
                         })
                       }}

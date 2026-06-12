@@ -1,7 +1,17 @@
 import { lazy, Suspense } from 'react'
-import { createBrowserRouter, Outlet, Navigate } from 'react-router-dom'
+import { createBrowserRouter, Outlet, Navigate, useLocation } from 'react-router-dom'
 import { DashboardLayout } from '@/layouts/DashboardLayout'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
+import { useUserStore } from '@/store/userStore'
+
+function RequireAuth({ children }: { children: React.ReactNode }) {
+  const token = useUserStore((s) => s.accessToken)
+  const location = useLocation()
+  if (!token) {
+    return <Navigate to="/auth" state={{ from: location.pathname }} replace />
+  }
+  return <>{children}</>
+}
 
 const AuthPage                = lazy(() => import('@/pages/auth'))
 const HomePage                = lazy(() => import('@/pages/home'))
@@ -21,6 +31,7 @@ const EnterpriseProductPage   = lazy(() => import('@/pages/enterprise/product'))
 const EnterpriseTeamPage      = lazy(() => import('@/pages/enterprise/team'))
 const MaterialLibraryPage     = lazy(() => import('@/pages/material-library'))
 const AiAssessmentPage        = lazy(() => import('@/pages/ai-assessment'))
+const AiReviewPage            = lazy(() => import('@/pages/ai-review'))
 
 // Competition pages
 // M03 赛事广场
@@ -68,7 +79,7 @@ export const router = createBrowserRouter([
   },
   {
     path: '/',
-    element: <DashboardLayout />,
+    element: <RequireAuth><DashboardLayout /></RequireAuth>,
     children: [
       { index: true, element: <Navigate to="/home" replace /> },
       {
@@ -92,6 +103,7 @@ export const router = createBrowserRouter([
           { path: 'enterprise/team',          element: <EnterpriseTeamPage /> },
           { path: 'materials',                element: <MaterialLibraryPage /> },
           { path: 'ai-assessment',            element: <AiAssessmentPage /> },
+          { path: 'ai-review',               element: <AiReviewPage /> },
 
           // Competition routes
           // M03 赛事广场

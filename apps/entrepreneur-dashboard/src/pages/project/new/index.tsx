@@ -4,6 +4,8 @@ import {
   ArrowLeft, ArrowRight, Check, AlertTriangle, Upload, FileText, X,
 } from 'lucide-react'
 import { useProjectDashboardStore } from '@/store/projectDashboardStore'
+import { createProject } from '@/api/project'
+import { projectToCreateDto, apiToProject } from '@/api/projectMapper'
 import type {
   Project, CollectionItem, IdType, DegreeLevel,
   Applicant, TeamMember, Education, Work, MajorProject, Paper, Patent,
@@ -992,6 +994,8 @@ export default function ProjectNewPage() {
   const [currentTab, setCurrentTab] = useState(0)
   const [maxVisited, setMaxVisited] = useState(0)
   const [showErrors, setShowErrors] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
 
   function sf<K extends keyof DraftState>(key: K, val: DraftState[K]) {
     setDraft((prev) => ({ ...prev, [key]: val }))
@@ -1032,7 +1036,7 @@ export default function ProjectNewPage() {
     }, 2000)
   }
 
-  function handleSubmit() {
+  async function handleSubmit() {
     const allErrors = TABS.map((_, i) => validateTab(i, draft))
     const firstBad = allErrors.findIndex((e) => e.length > 0)
     if (firstBad >= 0) {
@@ -1042,7 +1046,7 @@ export default function ProjectNewPage() {
     }
 
     const now = new Date().toISOString()
-    const projId = `proj-v3-${Date.now()}`
+    const projId = `proj-v3-${Date.now()}` // temp id, replaced by backend id below
 
     const topDomain = TOP_DOMAINS.find((d) => d.code === draft.domainTopCode)
     const midDomain = topDomain?.children.find((m) => m.code === draft.domainMidCode)
@@ -1143,9 +1147,19 @@ export default function ProjectNewPage() {
       updatedAt: now,
     }
 
-    addProjectV3(project)
-    recordEditV3(projId, '创建项目', [])
-    navigate(`/project/${projId}`)
+    setSubmitting(true)
+    setSubmitError(null)
+    try {
+      const dto = projectToCreateDto(project)
+      const apiProject = await createProject(dto)
+      const savedProject = apiToProject(apiProject)
+      addProjectV3(savedProject)
+      recordEditV3(savedProject.id, '创建项目', [])
+      navigate(`/project/${savedProject.id}`)
+    } catch {
+      setSubmitError('创建项目失败，请检查网络连接后重试')
+      setSubmitting(false)
+    }
   }
 
   // ── Entry: choose mode ───────────────────────────────────────────────────────
@@ -1275,12 +1289,16 @@ export default function ProjectNewPage() {
         </span>
 
         {isLastTab ? (
-          <button
-            onClick={handleSubmit}
-            className="flex items-center gap-2 px-6 py-2.5 bg-brand-blue text-white rounded-xl text-sm font-bold hover:bg-brand-blue/90 transition-colors"
-          >
-            <Check className="w-4 h-4" /> 创建项目
-          </button>
+          <div className="flex flex-col items-end gap-1">
+            {submitError && <p className="text-xs text-red-500">{submitError}</p>}
+            <button
+              onClick={handleSubmit}
+              disabled={submitting}
+              className="flex items-center gap-2 px-6 py-2.5 bg-brand-blue text-white rounded-xl text-sm font-bold hover:bg-brand-blue/90 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              <Check className="w-4 h-4" /> {submitting ? '提交中…' : '创建项目'}
+            </button>
+          </div>
         ) : (
           <button
             onClick={handleNext}

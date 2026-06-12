@@ -122,7 +122,15 @@
       "PowerShell([System.IO.Directory]::GetFiles\\(\"d:\\\\Bochuangyuan-Frontend\\\\apps\\\\entrepreneur-dashboard\\\\node_modules\\\\.bin\"\\) | ForEach-Object { [System.IO.Path]::GetFileName\\($_\\) })",
       "PowerShell($item = Get-Item \"d:\\\\Bochuangyuan-Frontend\\\\apps\\\\entrepreneur-dashboard\\\\node_modules\\\\vite\" -Force; \"$\\($item.LinkType\\): $\\($item.Target\\)\")",
       "PowerShell(node \"d:\\\\Bochuangyuan-Frontend\\\\apps\\\\entrepreneur-dashboard\\\\node_modules\\\\.bin\\\\vite.CMD\" --version 2>&1)",
-      "PowerShell(& \"d:\\\\Bochuangyuan-Frontend\\\\apps\\\\entrepreneur-dashboard\\\\node_modules\\\\.bin\\\\vite.CMD\" --version 2>&1)"
+      "PowerShell(& \"d:\\\\Bochuangyuan-Frontend\\\\apps\\\\entrepreneur-dashboard\\\\node_modules\\\\.bin\\\\vite.CMD\" --version 2>&1)",
+      "Bash(xargs grep -l \"login\\\\|signin\\\\|authenticate\")",
+      "Bash(Get-ChildItem -Path \"d:\\\\Bochuangyuan-Frontend\" -Force)",
+      "Bash(Select-Object Name, Mode)",
+      "Bash(Format-Table -AutoSize)",
+      "PowerShell(Get-ChildItem -Path \"d:\\\\Bochuangyuan-Frontend\\\\docs\\\\bp-review-agent\" -Force | Where-Object { $_.Name -ne '.venv' } | Select-Object Name, Mode | Format-Table -AutoSize)",
+      "PowerShell(Get-ChildItem -Path \"d:\\\\Bochuangyuan-Frontend\\\\docs\\\\bp-review-agent\\\\bp-review-agent\" -Force | Where-Object { $_.Name -ne '.venv' } | Select-Object Name, Mode | Format-Table -AutoSize)",
+      "PowerShell(Get-ChildItem -Path \"d:\\\\Bochuangyuan-Frontend\\\\packages\" -Force | ForEach-Object { Get-ChildItem -Path $_.FullName -Depth 1 -Force | Where-Object { $_.Mode -match 'd' -and $_.Name -ne 'node_modules' -and $_.Name -ne '.turbo' } | Select-Object @{Name=\"Package\"; Expression={$_.Parent.Name}}, Name } | Format-Table -AutoSize)",
+      "PowerShell(Get-ChildItem -Path \"d:\\\\Bochuangyuan-Frontend\\\\apps\" -Force | ForEach-Object { @{Name=$_.Name; Files=\\(Get-ChildItem -Path $_.FullName -Force | Where-Object { -not $_.PSIsContainer -and $_.Name -match 'package\\\\.json|\\\\.env\\\\.example|README' } | Select-Object -ExpandProperty Name\\) -join ', '} } | Format-Table -AutoSize)"
     ],
     "additionalDirectories": [
       "d:\\Bochuangyuan-Frontend\\apps\\entrepreneur-dashboard\\src"

@@ -3,7 +3,6 @@ import {
   MOCK_PROJECTS,
   MOCK_REGISTRATIONS,
   MOCK_COMPETITIONS,
-  MOCK_PROJECTS_V3,
   type ProjectV2,
   type RegistrationInstance,
   type CompetitionTemplate,
@@ -31,6 +30,7 @@ interface ProjectDashboardState {
 
   // ── V3 Project state (new type, used by Phase 3+ pages) ──────────────────
   projectsV3: Project[]
+  setProjectsV3: (projects: Project[]) => void
   addProjectV3: (p: Project) => void
   updateProjectV3: (id: string, patch: Partial<Project>) => void
   recordEditV3: (
@@ -102,7 +102,9 @@ export const useProjectDashboardStore = create<ProjectDashboardState>()((set) =>
 
   // ── V3 actions ──────────────────────────────────────────────────────────────
 
-  projectsV3: MOCK_PROJECTS_V3,
+  projectsV3: [],
+
+  setProjectsV3: (projects) => set({ projectsV3: projects }),
 
   addProjectV3: (p) =>
     set((state) => ({ projectsV3: [...state.projectsV3, p] })),

@@ -212,9 +212,9 @@ function KV({ label, value }: { label: string; value: string | number | boolean 
     : typeof value === 'boolean' ? (value ? '是' : '否')
     : String(value)
   return (
-    <div className="flex gap-2 text-sm">
-      <span className="text-slate-400 whitespace-nowrap flex-shrink-0 w-28">{label}</span>
-      <span className="text-slate-700 font-medium flex-1 min-w-0">{display}</span>
+    <div className="flex gap-2 text-sm min-w-0">
+      <span className="text-slate-400 whitespace-nowrap flex-shrink-0 w-24">{label}</span>
+      <span className="text-slate-700 font-medium flex-1 min-w-0 truncate">{display}</span>
     </div>
   )
 }
@@ -924,10 +924,10 @@ export default function RegistrationDetailPage() {
         <OptimizeDocModal project={project} reg={reg} onClose={() => setOptimizeOpen(false)} />
       )}
 
-      <div className="flex gap-6 items-start">
+      <div className="grid gap-5 items-start" style={{ gridTemplateColumns: '1fr 296px' }}>
 
         {/* ── Main content column ─────────────────────────────── */}
-        <div className="flex-1 min-w-0 max-w-2xl space-y-5">
+        <div className="min-w-0 space-y-5">
 
           {/* Header */}
           <div className="flex items-start gap-3">
@@ -1027,7 +1027,7 @@ export default function RegistrationDetailPage() {
           {/* Applicant basic */}
           <div className="glass-card p-5 space-y-2.5">
             <SectionTitle icon={<Users className="w-4 h-4" />}>申报人基本信息</SectionTitle>
-            <div className="grid grid-cols-2 gap-x-6 gap-y-2.5">
+            <div className="grid grid-cols-3 gap-x-4 gap-y-2.5">
               <KV label="姓名" value={a.name} />
               <KV label="英文名" value={a.nameEn} />
               <KV label="性别" value={a.gender} />
@@ -1200,16 +1200,16 @@ export default function RegistrationDetailPage() {
           {/* Org info */}
           <div className="glass-card p-5 space-y-2.5">
             <SectionTitle icon={<Building2 className="w-4 h-4" />}>用人单位</SectionTitle>
-            <div className="grid grid-cols-2 gap-x-6 gap-y-2.5">
+            <div className="grid grid-cols-3 gap-x-4 gap-y-2.5">
               <KV label="单位名称" value={project.orgInfo.name} />
               <KV label="单位类型" value={project.orgInfo.orgType} />
               <KV label="统一信用代码" value={project.orgInfo.creditCode} />
               <KV label="成立时间" value={project.orgInfo.establishedDate} />
               <KV label="注册资本（万）" value={project.orgInfo.registeredCapital} />
               <KV label="在职员工数" value={project.orgInfo.totalEmployees} />
-              <div className="col-span-2"><KV label="通讯地址" value={project.orgInfo.address} /></div>
+              <div className="col-span-3"><KV label="通讯地址" value={project.orgInfo.address} /></div>
             </div>
-            <div className="pt-2 border-t border-slate-100 grid grid-cols-2 gap-x-6 gap-y-2.5">
+            <div className="pt-2 border-t border-slate-100 grid grid-cols-3 gap-x-4 gap-y-2.5">
               <div className="flex items-center gap-2">
                 <KV label="年研发投入（万）" value={project.orgInfo.rdExpenditure} />
                 {vs.rdExpenditure === 'verified' ? <ShieldCheck className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" /> : <Shield className="w-3.5 h-3.5 text-slate-300 flex-shrink-0" />}
@@ -1255,7 +1255,7 @@ export default function RegistrationDetailPage() {
           {project.totalInvestmentForecast > 0 && (
             <div className="glass-card p-5">
               <SectionTitle icon={<Building2 className="w-4 h-4" />}>投入预测</SectionTitle>
-              <div className="grid grid-cols-2 gap-x-6 gap-y-2.5">
+              <div className="grid grid-cols-4 gap-x-4 gap-y-2.5">
                 <KV label="总投入预测（万）" value={project.totalInvestmentForecast} />
                 <KV label="已自筹（万）" value={project.alreadyInvestedByOrg} />
                 <KV label="已获政府支持（万）" value={project.govSupportReceived} />
@@ -1279,12 +1279,10 @@ export default function RegistrationDetailPage() {
           </div>
         </div>
 
-        {/* ── AI Analysis sidebar (Phase 1 only) ─────────────── */}
-        {isPhase1Active && (
-          <div className="w-72 flex-shrink-0 sticky top-6">
-            <AIAnalysisPanel project={project} reg={reg} />
-          </div>
-        )}
+        {/* ── AI Analysis sidebar ────────────────────────────── */}
+        <div className="sticky top-6">
+          <AIAnalysisPanel project={project} reg={reg} />
+        </div>
 
       </div>
     </>

@@ -7,6 +7,7 @@ import {
   FolderOpen,
   Trophy,
   Sparkles,
+  Bot,
   User,
   Bell,
   ChevronDown,
@@ -21,6 +22,8 @@ import { AiAssistant } from '@/components/ai-assistant'
 import { GlobalFilePicker } from '@/components/file-picker/GlobalFilePicker'
 import { cn } from '../lib/utils'
 import { useState } from 'react'
+import { useUserStore } from '@/store/userStore'
+import { authApi } from '@bochuangyuan/api'
 
 const PREFETCH: Record<string, () => Promise<unknown>> = {
   '/home':               () => import('@/pages/home'),
@@ -35,6 +38,7 @@ const PREFETCH: Record<string, () => Promise<unknown>> = {
   '/materials':          () => import('@/pages/material-library'),
   '/competition':        () => import('@/pages/competition'),
   '/ai-assessment':      () => import('@/pages/ai-assessment'),
+  '/ai-review':          () => import('@/pages/ai-review'),
 }
 
 const COMPETITION_SUB_ITEMS = [
@@ -51,6 +55,7 @@ const FLAT_NAV_ITEMS = [
   { to: '/enterprise/info',  icon: Building2,       label: '企业档案' },
   { to: '/materials',        icon: FolderOpen,      label: '材料库' },
   { to: '/ai-assessment',    icon: Sparkles,        label: 'AI 评估' },
+  { to: '/ai-review',        icon: Bot,             label: 'AI 评审' },
 ] as const
 
 function NavItem({ to, icon: Icon, label, end }: { to: string; icon: React.ElementType; label: string; end?: boolean }) {
@@ -179,6 +184,17 @@ function BochuangMark({ size = 36 }: { size?: number }) {
 
 export function DashboardLayout() {
   const navigate = useNavigate()
+  const { user, refreshToken, clearAuth } = useUserStore()
+
+  async function handleLogout() {
+    try {
+      if (refreshToken) await authApi.logout(refreshToken)
+    } catch {
+      // ignore server errors on logout
+    }
+    clearAuth()
+    navigate('/auth', { replace: true })
+  }
 
   return (
     // h-screen + overflow-hidden = App Shell: header+sidebar never move,
@@ -244,20 +260,20 @@ export function DashboardLayout() {
             </button>
 
             {/* User block */}
-            <div
-              className="flex items-center gap-2 pl-3 ml-1 border-l border-white/10 cursor-pointer hover:opacity-80 transition-opacity"
-              onClick={() => navigate('/auth')}
-            >
-              <img
-                src="https://images.unsplash.com/photo-1599566150163-29194dcaad36?q=80&w=100&h=100&auto=format&fit=crop"
-                className="w-7 h-7 rounded-full border border-white/20"
-                alt="用户头像"
-              />
-              <div className="text-xs leading-tight hidden md:block">
-                <div className="font-medium">陈博士</div>
-                <div className="text-white/50 text-[10px]">高级合伙人</div>
+            <div className="flex items-center gap-2 pl-3 ml-1 border-l border-white/10">
+              <div className="w-7 h-7 rounded-full bg-blue-500 flex items-center justify-center text-xs font-bold text-white shrink-0">
+                {user?.username?.[0]?.toUpperCase() ?? '?'}
               </div>
-              <ChevronDown className="w-3.5 h-3.5 text-white/40 ml-0.5" />
+              <div className="text-xs leading-tight hidden md:block">
+                <div className="font-medium">{user?.username ?? '未登录'}</div>
+                <div className="text-white/50 text-[10px]">{user?.role ?? ''}</div>
+              </div>
+              <button
+                onClick={handleLogout}
+                className="ml-1 px-2 py-1 rounded-lg text-[10px] text-white/60 hover:text-white hover:bg-white/10 transition-colors"
+              >
+                退出
+              </button>
             </div>
           </div>
         </nav>

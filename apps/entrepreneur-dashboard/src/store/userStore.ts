@@ -1,11 +1,12 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import type { User } from '@bochuangyuan/types'
+import type { BackendUser } from '@bochuangyuan/api'
 
 interface UserState {
-  user: User | null
-  token: string | null
-  setAuth: (user: User, token: string) => void
+  user: BackendUser | null
+  accessToken: string | null
+  refreshToken: string | null
+  setAuth: (user: BackendUser, accessToken: string, refreshToken: string) => void
   clearAuth: () => void
 }
 
@@ -13,10 +14,25 @@ export const useUserStore = create<UserState>()(
   persist(
     (set) => ({
       user: null,
-      token: null,
-      setAuth: (user, token) => set({ user, token }),
-      clearAuth: () => set({ user: null, token: null }),
+      accessToken: null,
+      refreshToken: null,
+      setAuth: (user, accessToken, refreshToken) => {
+        localStorage.setItem('bcyToken', accessToken)
+        set({ user, accessToken, refreshToken })
+      },
+      clearAuth: () => {
+        localStorage.removeItem('bcyToken')
+        set({ user: null, accessToken: null, refreshToken: null })
+      },
     }),
-    { name: 'bcy-user' },
+    {
+      name: 'bcy-user',
+      // rehydrate bcyToken on app load so interceptor picks it up immediately
+      onRehydrateStorage: () => (state) => {
+        if (state?.accessToken) {
+          localStorage.setItem('bcyToken', state.accessToken)
+        }
+      },
+    },
   ),
 )

@@ -31,6 +31,24 @@ export interface DocumentVersionResponse {
   is_current: boolean
 }
 
+export interface DocumentPermissionResponse {
+  id: number
+  document_id: number
+  user_id: number
+  can_preview: boolean
+  can_edit: boolean
+  can_download: boolean
+  granted_by_id: number
+  created_at: string
+}
+
+export interface CreatePermissionDto {
+  user_id: number
+  can_preview?: boolean
+  can_edit?: boolean
+  can_download?: boolean
+}
+
 export const documentsApi = {
   list: (doc_type?: string) =>
     apiClient
@@ -42,10 +60,10 @@ export const documentsApi = {
   upload: (file: File, doc_type = 'business_plan') => {
     const form = new FormData()
     form.append('file', file)
-    form.append('doc_type', doc_type)
     return apiClient
       .post<DocumentResponse>('/api/v1/documents/upload', form, {
-        headers: { 'Content-Type': 'multipart/form-data' },
+        params: { doc_type },
+        headers: { 'Content-Type': undefined },
       })
       .then((r) => r.data)
   },
@@ -65,6 +83,21 @@ export const documentsApi = {
 
   download: (id: number) =>
     apiClient
-      .get(`/api/v1/documents/${id}/download`, { responseType: 'blob' })
-      .then((r) => r.data as Blob),
+      .get<string>(`/api/v1/documents/${id}/download`)
+      .then((r) => r.data),
+
+  permissions: (id: number) =>
+    apiClient
+      .get<DocumentPermissionResponse[]>(`/api/v1/documents/${id}/permissions`)
+      .then((r) => r.data),
+
+  createPermission: (id: number, dto: CreatePermissionDto) =>
+    apiClient
+      .post<DocumentPermissionResponse>(`/api/v1/documents/${id}/permissions`, dto)
+      .then((r) => r.data),
+
+  deletePermission: (documentId: number, permissionId: number) =>
+    apiClient
+      .delete(`/api/v1/documents/${documentId}/permissions/${permissionId}`)
+      .then(() => undefined),
 }
