@@ -1,11 +1,13 @@
 import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  ArrowLeft, ArrowRight, Check, AlertTriangle, Upload, FileText, X,
+  ArrowLeft, ArrowRight, Check, AlertTriangle, Upload, FileText, X, Sparkles, Loader2,
 } from 'lucide-react'
 import { useProjectDashboardStore } from '@/store/projectDashboardStore'
 import { createProject } from '@/api/project'
 import { projectToCreateDto, apiToProject } from '@/api/projectMapper'
+import { buildPrefillSchema } from '@/constants/projectFieldDefs'
+import { createPrefillTask, pollPrefillTask } from '@/api/prefill'
 import type {
   Project, CollectionItem, IdType, DegreeLevel,
   Applicant, TeamMember, Education, Work, MajorProject, Paper, Patent,
@@ -996,6 +998,8 @@ export default function ProjectNewPage() {
   const [showErrors, setShowErrors] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const [prefillLoading, setPrefillLoading] = useState(false)
+  const [prefillError, setPrefillError] = useState<string | null>(null)
 
   function sf<K extends keyof DraftState>(key: K, val: DraftState[K]) {
     setDraft((prev) => ({ ...prev, [key]: val }))
@@ -1024,16 +1028,85 @@ export default function ProjectNewPage() {
     if (currentTab > 0) goTo(currentTab - 1)
   }
 
-  function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
+  // Map DraftState collection key → CollectionSchema (for type-based null defaults)
+  const DRAFT_KEY_SCHEMA: Record<string, typeof EDUCATION_SCHEMA> = {
+    educations: EDUCATION_SCHEMA, works: WORK_SCHEMA,
+    teamMembers: TEAM_MEMBER_SCHEMA, projectStages: PROJECT_STAGE_SCHEMA,
+    majorProjects: MAJOR_PROJECT_SCHEMA, papers: PAPER_SCHEMA,
+    patents: PATENT_SCHEMA, softwareCopyrights: SOFTWARE_COPYRIGHT_SCHEMA,
+    products: PRODUCT_SCHEMA, awards: AWARD_SCHEMA,
+    books: BOOK_SCHEMA, conferenceReports: CONFERENCE_REPORT_SCHEMA,
+    academicPositions: ACADEMIC_POSITION_SCHEMA,
+    foundedCompanies: FOUNDED_COMPANY_SCHEMA, orgHonors: ORG_HONOR_SCHEMA,
+  }
+
+  function schemaDefaults(schema: typeof EDUCATION_SCHEMA): Record<string, unknown> {
+    return Object.fromEntries(schema.fields.map((f) => [
+      f.key,
+      f.defaultValue !== undefined ? f.defaultValue
+        : f.type === 'boolean' ? false
+        : f.type === 'number' ? 0
+        : '',
+    ]))
+  }
+
+  function applyPrefillValues(values: Record<string, unknown>) {
+    setDraft((prev) => {
+      const next = { ...prev } as unknown as Record<string, unknown>
+      const prevAny = prev as unknown as Record<string, unknown>
+      for (const [key, val] of Object.entries(values)) {
+        if (val === null || val === undefined) continue
+        if (!(key in prev)) continue
+        const prevVal = prevAny[key]
+        const schema = DRAFT_KEY_SCHEMA[key]
+        if (schema && Array.isArray(val)) {
+          const defaults = schemaDefaults(schema)
+          next[key] = val.map((item, i) => {
+            // Drop null/undefined AI values so they don't override schema defaults
+            const clean = Object.fromEntries(
+              Object.entries(item as object).filter(([, v]) => v !== null && v !== undefined)
+            )
+            return { ...defaults, ...clean, _id: `ai-${Date.now()}-${i}` }
+          })
+        } else if (typeof prevVal === 'string' && typeof val === 'number') {
+          next[key] = String(val)
+        } else {
+          next[key] = val
+        }
+      }
+      return next as unknown as DraftState
+    })
+  }
+
+  async function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
+    e.target.value = '' // allow re-selecting same file
+    const wasInChooseMode = mode === 'choose'
+
     setUploadFileName(file.name)
-    setMode('uploading')
-    setTimeout(() => {
-      setDraft({ ...EMPTY_DRAFT, ...MOCK_PRESET })
-      setMode('form')
-      setMaxVisited(0)
-    }, 2000)
+    setPrefillError(null)
+    setPrefillLoading(true)
+    if (wasInChooseMode) setMode('uploading')
+
+    try {
+      const schema = buildPrefillSchema()
+      const taskId = await createPrefillTask(file, schema)
+      const result = await pollPrefillTask(taskId)
+      if (result.status === 'done' && result.values) {
+        applyPrefillValues(result.values)
+      } else {
+        setPrefillError(result.error ?? 'AI 预填未找到足够信息，请手动补充')
+      }
+    } catch (err) {
+      setPrefillError(err instanceof Error ? err.message : 'AI 预填失败，请手动填写')
+    } finally {
+      setPrefillLoading(false)
+      if (wasInChooseMode) {
+        setMode('form')
+        setMaxVisited(0)
+      }
+    }
   }
 
   async function handleSubmit() {
@@ -1156,8 +1229,14 @@ export default function ProjectNewPage() {
       addProjectV3(savedProject)
       recordEditV3(savedProject.id, '创建项目', [])
       navigate(`/project/${savedProject.id}`)
-    } catch {
-      setSubmitError('创建项目失败，请检查网络连接后重试')
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: unknown; status?: number } }
+      const detail = axiosErr?.response?.data
+      console.error('[createProject] status:', axiosErr?.response?.status, 'body:', detail)
+      const msg = detail
+        ? JSON.stringify(detail, null, 2)
+        : '创建项目失败，请检查网络连接后重试'
+      setSubmitError(msg)
       setSubmitting(false)
     }
   }
@@ -1185,9 +1264,9 @@ export default function ProjectNewPage() {
             <div className="w-12 h-12 rounded-xl bg-brand-blue/10 flex items-center justify-center mb-4 group-hover:bg-brand-blue/15 transition-colors">
               <Upload className="w-6 h-6 text-brand-blue" />
             </div>
-            <p className="font-bold text-slate-800 mb-1">上传申报书 / BP 识别导入</p>
-            <p className="text-sm text-slate-500 leading-relaxed">上传本地申报书或 PDF，系统自动提取结构化字段（目标覆盖率 80~90%），核对后保存</p>
-            <p className="text-xs text-slate-400 mt-2">支持 .pdf .docx 格式 · 识别逻辑 Phase 8 实现</p>
+            <p className="font-bold text-slate-800 mb-1">上传申报书 / BP — AI 识别导入</p>
+            <p className="text-sm text-slate-500 leading-relaxed">上传申报书、商业计划书等文件，AI 自动提取结构化字段（覆盖率 80~90%），核对后保存</p>
+            <p className="text-xs text-slate-400 mt-2">支持 PDF · Word · PPT · 图片</p>
           </button>
 
           <button
@@ -1202,7 +1281,7 @@ export default function ProjectNewPage() {
           </button>
         </div>
 
-        <input ref={fileRef} type="file" accept=".pdf,.docx" className="hidden" onChange={handleFileSelect} />
+        <input ref={fileRef} type="file" accept=".pdf,.docx,.pptx,.jpg,.jpeg,.png,.webp" className="hidden" onChange={handleFileSelect} />
       </div>
     )
   }
@@ -1244,14 +1323,35 @@ export default function ProjectNewPage() {
         <button onClick={() => navigate('/project')} className="text-slate-400 hover:text-slate-600 transition-colors">
           <ArrowLeft className="w-5 h-5" />
         </button>
-        <div>
+        <div className="flex-1 min-w-0">
           <h1 className="text-xl font-black text-slate-800">新建项目</h1>
-          {uploadFileName && (
+          {uploadFileName && !prefillLoading && !prefillError && (
             <p className="text-xs text-emerald-600 flex items-center gap-1 mt-0.5">
               <Check className="w-3 h-3" /> 已从《{uploadFileName}》提取字段，请核对修改
             </p>
           )}
+          {prefillLoading && (
+            <p className="text-xs text-brand-blue flex items-center gap-1 mt-0.5">
+              <Loader2 className="w-3 h-3 animate-spin" /> AI 正在解析《{uploadFileName}》…
+            </p>
+          )}
+          {prefillError && (
+            <p className="text-xs text-amber-600 flex items-center gap-1 mt-0.5">
+              <AlertTriangle className="w-3 h-3" /> {prefillError}
+            </p>
+          )}
         </div>
+        {/* In-form AI prefill trigger */}
+        <button
+          onClick={() => fileRef.current?.click()}
+          disabled={prefillLoading}
+          className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 text-sm font-semibold text-slate-600 hover:border-brand-blue/40 hover:text-brand-blue hover:bg-brand-blue/5 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
+        >
+          {prefillLoading
+            ? <Loader2 className="w-4 h-4 animate-spin" />
+            : <Sparkles className="w-4 h-4" />}
+          AI 预填
+        </button>
       </div>
 
       {/* Stepper */}

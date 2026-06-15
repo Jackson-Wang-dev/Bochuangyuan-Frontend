@@ -24,7 +24,10 @@ export const useReviewSessionStore = create<State>()(
     (set) => ({
       sessions: [],
       createSession: (data) => {
-        const id = crypto.randomUUID()
+        const id =
+          typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+            ? crypto.randomUUID()
+            : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`
         const now = new Date().toISOString()
         set((s) => ({ sessions: [{ ...data, id, createdAt: now, updatedAt: now }, ...s.sessions] }))
         return id

@@ -51,6 +51,10 @@ export interface FieldSchema {
   hidden?: boolean
   /** hidden=true 时新建条目的初始值 */
   defaultValue?: unknown
+  /** AI 预填时给模型的抽取说明（中文，越具体越准）；未填则退化为 label */
+  description?: string
+  /** 数字字段的单位（如"万元"），要求模型换算成该单位的纯数字 */
+  unit?: string
 }
 
 export interface CollectionSchema {
