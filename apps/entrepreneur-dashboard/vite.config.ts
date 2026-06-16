@@ -20,6 +20,11 @@ export default defineConfig(({ mode }) => {
       allowedHosts: true,
       hmr: process.env.DISABLE_HMR !== 'true',
       proxy: {
+        // Must be listed before '/api' so it takes priority
+        '/api/prefill': {
+          target: env.VITE_PREFILL_API_URL || 'http://localhost:8002',
+          changeOrigin: true,
+        },
         '/api': {
           target: env.VITE_API_BASE_URL || 'http://39.106.61.160:8080',
           changeOrigin: true,

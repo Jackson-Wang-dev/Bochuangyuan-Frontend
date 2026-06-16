@@ -418,9 +418,15 @@ export function buildPrefillSchema(): PrefillSchema {
   ]
 
   const collectionFields: PrefillFieldDef[] = [
-    // Tab 1
-    collectionSchemaToPrefillField(EDUCATION_SCHEMA),
-    collectionSchemaToPrefillField(WORK_SCHEMA),
+    // Tab 1 — 仅提取主申报人（第一人、申报人）的经历，忽略团队成员的
+    {
+      ...collectionSchemaToPrefillField(EDUCATION_SCHEMA),
+      description: '只提取主申报人（即申报人本人，非团队成员）的教育经历，每条形成一个对象',
+    },
+    {
+      ...collectionSchemaToPrefillField(WORK_SCHEMA),
+      description: '只提取主申报人（即申报人本人，非团队成员）的工作经历，每条形成一个对象',
+    },
     // Tab 2
     collectionSchemaToPrefillField(TEAM_MEMBER_SCHEMA),
     // Tab 3

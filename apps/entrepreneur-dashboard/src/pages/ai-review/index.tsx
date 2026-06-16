@@ -26,18 +26,49 @@ function InlineMd({ text }: { text: string }) {
   )
 }
 
+// Role-section header colors (cycles through these for each ## heading)
+const ROLE_COLORS = [
+  { bg: 'bg-blue-50', border: 'border-blue-200', text: 'text-blue-700', dot: 'bg-blue-400' },
+  { bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-700', dot: 'bg-emerald-400' },
+  { bg: 'bg-violet-50', border: 'border-violet-200', text: 'text-violet-700', dot: 'bg-violet-400' },
+  { bg: 'bg-amber-50', border: 'border-amber-200', text: 'text-amber-700', dot: 'bg-amber-400' },
+]
+
 function SimpleMarkdown({ content }: { content: string }) {
-  const lines = content.split('\n')
+  // Normalise <br> / <br/> / <br /> → newline, then split
+  const normalised = content.replace(/<br\s*\/?>/gi, '\n')
+  const lines = normalised.split('\n')
   const nodes: React.ReactNode[] = []
   let i = 0
+  let roleIdx = 0   // tracks which ## heading we're on for color cycling
+
   while (i < lines.length) {
     const line = lines[i]!
+
     if (line.startsWith('### ')) {
-      nodes.push(<h3 key={i} className="text-sm font-bold text-slate-800 mt-4 mb-1"><InlineMd text={line.slice(4)} /></h3>)
+      nodes.push(
+        <h3 key={i} className="text-sm font-bold text-slate-800 mt-4 mb-1">
+          <InlineMd text={line.slice(4)} />
+        </h3>
+      )
     } else if (line.startsWith('## ')) {
-      nodes.push(<h2 key={i} className="text-base font-bold text-slate-800 mt-5 mb-2 border-b border-slate-100 pb-1"><InlineMd text={line.slice(3)} /></h2>)
+      // Role-section header — prominent banner with color accent
+      const color = ROLE_COLORS[roleIdx % ROLE_COLORS.length]!
+      roleIdx++
+      nodes.push(
+        <div key={i} className={`flex items-center gap-2.5 mt-6 mb-3 px-3 py-2.5 rounded-xl border ${color.bg} ${color.border}`}>
+          <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${color.dot}`} />
+          <h2 className={`text-sm font-extrabold tracking-wide ${color.text}`}>
+            <InlineMd text={line.slice(3)} />
+          </h2>
+        </div>
+      )
     } else if (line.startsWith('# ')) {
-      nodes.push(<h1 key={i} className="text-lg font-black text-slate-800 mt-4 mb-3"><InlineMd text={line.slice(2)} /></h1>)
+      nodes.push(
+        <h1 key={i} className="text-base font-black text-slate-800 mt-4 mb-3">
+          <InlineMd text={line.slice(2)} />
+        </h1>
+      )
     } else if (line.startsWith('- ') || line.startsWith('* ')) {
       const items: string[] = []
       while (i < lines.length && (lines[i]!.startsWith('- ') || lines[i]!.startsWith('* '))) {
@@ -45,7 +76,9 @@ function SimpleMarkdown({ content }: { content: string }) {
       }
       nodes.push(
         <ul key={`ul-${i}`} className="ml-4 space-y-0.5 list-disc marker:text-slate-400 my-1">
-          {items.map((item, j) => <li key={j} className="text-sm text-slate-700 leading-relaxed"><InlineMd text={item} /></li>)}
+          {items.map((item, j) => (
+            <li key={j} className="text-sm text-slate-700 leading-relaxed"><InlineMd text={item} /></li>
+          ))}
         </ul>
       )
       continue
@@ -58,11 +91,19 @@ function SimpleMarkdown({ content }: { content: string }) {
       nodes.push(
         <div key={`tbl-${i}`} className="overflow-x-auto my-3 rounded-xl border border-slate-200">
           <table className="w-full text-xs border-collapse">
-            <thead><tr className="bg-slate-50">{headers.map((h, j) => <th key={j} className="border-b border-slate-200 px-3 py-2 text-left font-semibold text-slate-700">{h}</th>)}</tr></thead>
+            <thead>
+              <tr className="bg-slate-50">
+                {headers.map((h, j) => <th key={j} className="border-b border-slate-200 px-3 py-2 text-left font-semibold text-slate-700">{h}</th>)}
+              </tr>
+            </thead>
             <tbody>
               {dataRows.map((row, ri) => (
                 <tr key={ri} className={ri % 2 === 0 ? '' : 'bg-slate-50/60'}>
-                  {row.map((cell, ci) => <td key={ci} className="border-b border-slate-100 last:border-0 px-3 py-2 text-slate-600 align-top"><InlineMd text={cell} /></td>)}
+                  {row.map((cell, ci) => (
+                    <td key={ci} className="border-b border-slate-100 last:border-0 px-3 py-2 text-slate-600 align-top">
+                      <InlineMd text={cell} />
+                    </td>
+                  ))}
                 </tr>
               ))}
             </tbody>
@@ -73,7 +114,16 @@ function SimpleMarkdown({ content }: { content: string }) {
     } else if (line === '') {
       nodes.push(<div key={i} className="h-1" />)
     } else {
-      nodes.push(<p key={i} className="text-sm text-slate-700 leading-relaxed"><InlineMd text={line} /></p>)
+      // Greeting lines before the first ## are rendered in a muted style
+      const isGreeting = roleIdx === 0
+      nodes.push(
+        <p key={i} className={cn(
+          'text-sm leading-relaxed',
+          isGreeting ? 'text-slate-400 italic' : 'text-slate-700',
+        )}>
+          <InlineMd text={line} />
+        </p>
+      )
     }
     i++
   }

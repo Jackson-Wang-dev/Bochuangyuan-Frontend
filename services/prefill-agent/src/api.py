@@ -56,6 +56,8 @@ class CreateTaskResponse(BaseModel):
 class TaskStatusResponse(BaseModel):
     taskId: str
     status: str
+    progress: int = 0
+    stage: str = ""
     values: dict | None = None
     error: str | None = None
 
@@ -115,6 +117,8 @@ async def get_task(task_id: str) -> TaskStatusResponse:
     return TaskStatusResponse(
         taskId=info.task_id,
         status=info.status,
+        progress=info.progress,
+        stage=info.stage,
         values=info.values,
         error=info.error,
     )

@@ -999,6 +999,8 @@ export default function ProjectNewPage() {
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [prefillLoading, setPrefillLoading] = useState(false)
+  const [prefillProgress, setPrefillProgress] = useState(0)
+  const [prefillStage, setPrefillStage] = useState('')
   const [prefillError, setPrefillError] = useState<string | null>(null)
 
   function sf<K extends keyof DraftState>(key: K, val: DraftState[K]) {
@@ -1086,13 +1088,17 @@ export default function ProjectNewPage() {
 
     setUploadFileName(file.name)
     setPrefillError(null)
+    setPrefillProgress(0)
+    setPrefillStage('')
     setPrefillLoading(true)
     if (wasInChooseMode) setMode('uploading')
 
     try {
       const schema = buildPrefillSchema()
       const taskId = await createPrefillTask(file, schema)
-      const result = await pollPrefillTask(taskId)
+      const result = await pollPrefillTask(taskId, {
+        onProgress: (p, s) => { setPrefillProgress(p); setPrefillStage(s) },
+      })
       if (result.status === 'done' && result.values) {
         applyPrefillValues(result.values)
       } else {
@@ -1266,7 +1272,8 @@ export default function ProjectNewPage() {
             </div>
             <p className="font-bold text-slate-800 mb-1">上传申报书 / BP — AI 识别导入</p>
             <p className="text-sm text-slate-500 leading-relaxed">上传申报书、商业计划书等文件，AI 自动提取结构化字段（覆盖率 80~90%），核对后保存</p>
-            <p className="text-xs text-slate-400 mt-2">支持 PDF · Word · PPT · 图片</p>
+            <p className="text-xs text-slate-400 mt-2">支持 PDF · Word · PPT · TXT</p>
+            <p className="text-xs text-amber-500 mt-1">注：扫描版（纯图片）PDF 及图片文件暂不支持</p>
           </button>
 
           <button
@@ -1281,7 +1288,7 @@ export default function ProjectNewPage() {
           </button>
         </div>
 
-        <input ref={fileRef} type="file" accept=".pdf,.docx,.pptx,.jpg,.jpeg,.png,.webp" className="hidden" onChange={handleFileSelect} />
+        <input ref={fileRef} type="file" accept=".pdf,.docx,.pptx,.txt" className="hidden" onChange={handleFileSelect} />
       </div>
     )
   }
@@ -1331,9 +1338,24 @@ export default function ProjectNewPage() {
             </p>
           )}
           {prefillLoading && (
-            <p className="text-xs text-brand-blue flex items-center gap-1 mt-0.5">
-              <Loader2 className="w-3 h-3 animate-spin" /> AI 正在解析《{uploadFileName}》…
-            </p>
+            <div className="mt-0.5 space-y-1">
+              <p className="text-xs text-brand-blue flex items-center gap-1">
+                <Loader2 className="w-3 h-3 animate-spin flex-shrink-0" />
+                AI 正在解析《{uploadFileName}》…
+                {prefillProgress > 0 && (
+                  <span className="font-semibold">{prefillProgress}%</span>
+                )}
+              </p>
+              <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                <div
+                  className="bg-brand-blue h-1.5 rounded-full transition-all duration-700 ease-out"
+                  style={{ width: `${prefillProgress}%` }}
+                />
+              </div>
+              {prefillStage && (
+                <p className="text-xs text-slate-400">{prefillStage}</p>
+              )}
+            </div>
           )}
           {prefillError && (
             <p className="text-xs text-amber-600 flex items-center gap-1 mt-0.5">

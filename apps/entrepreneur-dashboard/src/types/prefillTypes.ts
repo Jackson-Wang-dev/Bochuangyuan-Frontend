@@ -35,6 +35,8 @@ export type PrefillTaskStatus = 'pending' | 'running' | 'done' | 'failed'
 export interface PrefillTaskResponse {
   taskId: string
   status: PrefillTaskStatus
+  progress?: number   // 0-100
+  stage?: string      // human-readable stage label
   /** Filled when status === 'done'. Keys match DraftState / project field keys. */
   values?: Record<string, unknown>
   error?: string

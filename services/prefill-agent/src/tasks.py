@@ -13,6 +13,8 @@ TaskStatus = Literal["pending", "running", "done", "failed"]
 class TaskInfo:
     task_id: str
     status: TaskStatus = "pending"
+    progress: int = 0       # 0-100
+    stage: str = "准备中"
     values: dict[str, Any] | None = None
     error: str | None = None
 

@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
 import instructor  # type: ignore
@@ -18,16 +19,18 @@ from .schema_builder import build_model, build_system_prompt
 
 # Maximum characters sent to the model per chunk.
 # ~8 000 chars ≈ 3 000 tokens for Chinese text (well within deepseek-chat 32k context).
-# For very long docs we split and merge results.
 _CHUNK_SIZE = int(os.environ.get("PREFILL_CHUNK_SIZE", "8000"))
+
+# Dedicated thread pool for blocking LLM calls so asyncio loop is never blocked.
+_EXECUTOR = ThreadPoolExecutor(max_workers=8)
 
 
 async def run(task_id: str, file_bytes: bytes, filename: str, schema: dict[str, Any]) -> None:
     """Entry-point for the background task."""
-    await tasks.update(task_id, status="running")
+    await tasks.update(task_id, status="running", progress=0, stage="准备中…")
     try:
-        values = await _execute(file_bytes, filename, schema)
-        await tasks.update(task_id, status="done", values=values)
+        values = await _execute(task_id, file_bytes, filename, schema)
+        await tasks.update(task_id, status="done", progress=100, stage="完成", values=values)
     except Exception as exc:  # noqa: BLE001
         await tasks.update(task_id, status="failed", error=str(exc))
 
@@ -37,37 +40,70 @@ async def run(task_id: str, file_bytes: bytes, filename: str, schema: dict[str, 
 # --------------------------------------------------------------------------- #
 
 async def _execute(
+    task_id: str,
     file_bytes: bytes,
     filename: str,
     schema: dict[str, Any],
 ) -> dict[str, Any]:
-    fields = schema.get("fields", [])
+    all_fields = schema.get("fields", [])
+    flat_fields = [f for f in all_fields if f.get("type") not in ("array", "object")]
+    coll_fields = [f for f in all_fields if f.get("type") in ("array", "object")]
 
-    # Stage 1: text extraction
+    # Stage 1: text extraction (0 → 15%)
+    await tasks.update(task_id, progress=5, stage="正在解析文档…")
     text = await extract_text(file_bytes, filename)
+    await tasks.update(task_id, progress=15, stage="文档解析完成，正在提取字段…")
 
-    # Stage 2: structured extraction
-    ExtractionModel = build_model(fields)
-    system_prompt = build_system_prompt(fields)
     client = _get_client()
     model = _get_model()
+    loop = asyncio.get_event_loop()
 
-    chunks = _chunk(text, _CHUNK_SIZE)
-    merged: dict[str, Any] = {}
+    async def _run_flat() -> dict[str, Any]:
+        if not flat_fields:
+            return {}
+        ExtractionModel = build_model(flat_fields)
+        system_prompt = build_system_prompt(flat_fields)
+        partials = await asyncio.gather(*[
+            loop.run_in_executor(
+                _EXECUTOR,
+                lambda c=chunk: _extract_chunk(client, model, ExtractionModel, system_prompt, c),
+            )
+            for chunk in _chunk(text, _CHUNK_SIZE)
+        ])
+        merged: dict[str, Any] = {}
+        for p in partials:
+            for k, v in p.items():
+                if k not in merged and v is not None:
+                    merged[k] = v
+        return merged
 
-    for chunk in chunks:
-        partial = await asyncio.get_event_loop().run_in_executor(
-            None,
-            lambda c=chunk: _extract_chunk(client, model, ExtractionModel, system_prompt, c),
+    async def _run_coll(field: dict) -> dict[str, Any]:
+        ExtractionModel = build_model([field])
+        system_prompt = build_system_prompt([field])
+        return await loop.run_in_executor(
+            _EXECUTOR,
+            lambda: _extract_chunk(client, model, ExtractionModel, system_prompt, text[: _CHUNK_SIZE * 3]),
         )
-        # Merge: first non-null value wins for scalars; lists are concatenated
-        for k, v in partial.items():
-            if v is None:
-                continue
-            if k not in merged:
-                merged[k] = v
-            elif isinstance(v, list) and isinstance(merged.get(k), list):
-                merged[k] = merged[k] + v
+
+    # Launch flat + all collections concurrently; report progress as each finishes
+    n_total = 1 + len(coll_fields)
+    all_futs: list[asyncio.Future] = [
+        asyncio.ensure_future(_run_flat()),
+        *[asyncio.ensure_future(_run_coll(f)) for f in coll_fields],
+    ]
+
+    merged: dict[str, Any] = {}
+    completed = 0
+    for fut in asyncio.as_completed(all_futs):
+        result = await fut
+        merged.update(result)
+        completed += 1
+        progress = 15 + int(80 * completed / n_total)
+        await tasks.update(
+            task_id,
+            progress=min(progress, 95),
+            stage=f"字段提取中… ({completed}/{n_total})",
+        )
 
     return merged
 
@@ -83,6 +119,7 @@ def _extract_chunk(
         model=model,
         response_model=ExtractionModel,
         max_retries=3,
+        max_tokens=4096,   # each call outputs one field only; 4096 is plenty
         messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": f"文档内容如下：\n\n{chunk}"},
