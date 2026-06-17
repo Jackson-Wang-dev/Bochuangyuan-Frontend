@@ -67,7 +67,7 @@ export function ReviewLayout() {
   const initials = user?.name ? user.name.slice(-1) : '评'
 
   return (
-    <div className="grid h-screen overflow-hidden" style={{ gridTemplateColumns: '248px 1fr' }}>
+    <div className="grid h-screen overflow-hidden" style={{ gridTemplateColumns: '248px 1fr', gridTemplateRows: '100vh' }}>
       {/* Sidebar */}
       <aside className="flex flex-col bg-panel border-r border-line">
         {/* Brand */}
@@ -125,7 +125,7 @@ export function ReviewLayout() {
         </header>
 
         {/* Scrollable content */}
-        <main className="flex-1 overflow-y-auto bg-page">
+        <main className="flex-1 min-h-0 overflow-y-auto bg-page">
           <div className="max-w-[1080px] mx-auto px-8 py-6">
             <Outlet />
           </div>

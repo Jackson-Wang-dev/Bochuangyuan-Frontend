@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
   ArrowLeft,
@@ -9,24 +9,26 @@ import {
   Loader2,
 } from 'lucide-react'
 import { toast } from 'sonner'
-import { reviewTaskApi, reviewRuleApi } from '@bochuangyuan/api'
+import { reviewTaskApi } from '@bochuangyuan/api'
 import { useDebounce } from '@bochuangyuan/shared'
 import { cn } from '@/lib/utils'
-import type { ExpertTask, ReviewDimension } from '@bochuangyuan/types'
-import { MOCK_COMPETITIONS, SEED_TASKS } from '@/constants/mockData'
+import type { ExpertTask } from '@bochuangyuan/types'
+import type { ProjectPayload, RubricDimension, ReviewStageType, Annotation } from '@/types/domain'
+import { reviewService } from '@/services'
+import { MOCK_COMPETITIONS, MOCK_EXPERT_ID, SEED_TASKS } from '@/constants/mockData'
+import { AnnotatedField } from './AnnotatedField'
+import { ReviewWatermark } from '@/components/ReviewWatermark'
 
 const PHASE_LABELS: Record<ExpertTask['phase'], string> = {
-  preliminary: '初审',
+  preliminary: '初审（盲评）',
   semifinal:   '复审',
   final:       '终评',
   roadshow:    '路演',
 }
 
-const DEFAULT_DIMENSIONS: ReviewDimension[] = [
-  { id: 'dim-1', label: '创新性',   weight: 40, maxScore: 10 },
-  { id: 'dim-2', label: '可行性',   weight: 35, maxScore: 10 },
-  { id: 'dim-3', label: '团队能力', weight: 25, maxScore: 10 },
-]
+function phaseToStage(phase: ExpertTask['phase']): ReviewStageType {
+  return phase === 'preliminary' ? 'blind' : 'open'
+}
 
 const DRAFT_KEY = (taskId: string) => `bochuangyuan:draft:${taskId}`
 
@@ -37,70 +39,90 @@ export default function ReviewDetailPage() {
 
   const [task, setTask] = useState<ExpertTask | null>(null)
   const [scopedTasks, setScopedTasks] = useState<ExpertTask[]>([])
-  const [dimensions, setDimensions] = useState<ReviewDimension[]>([])
+  const [projectPayload, setProjectPayload] = useState<ProjectPayload | null>(null)
+  const [rubric, setRubric] = useState<RubricDimension[]>([])
+  const [annotations, setAnnotations] = useState<Annotation[]>([])
   const [scores, setScores] = useState<Record<string, number>>({})
   const [comment, setComment] = useState('')
   const [recommend, setRecommend] = useState(false)
   const [submitting, setSubmitting] = useState(false)
 
-  // Back destination depends on entry point
   const backPath = contestId ? `/competitions/${contestId}` : '/review/queue'
   const competitionName = contestId
     ? (MOCK_COMPETITIONS.find((c) => c.contestId === contestId)?.name ?? '')
     : ''
 
+  // Seed tasks for scoped prev/next navigation
   useEffect(() => {
     reviewTaskApi.seedMockData(SEED_TASKS)
-
-    // Load all tasks, then scope to same competition if entered from competition workspace
     reviewTaskApi.list().then((all) => {
       const scoped = contestId ? all.filter((t) => t.contestId === contestId) : all
       setScopedTasks(scoped)
     })
   }, [contestId])
 
+  // Load task → derive stage → fetch project content + rubric
   useEffect(() => {
     if (!taskId) return
+    setProjectPayload(null)
+    setRubric([])
+
     reviewTaskApi.get(taskId).then((t) => {
       if (!t) return
       setTask(t)
 
-      if (t.contestId) {
-        reviewRuleApi.getByContest(t.contestId).then((rule) => {
-          const phase = rule?.phases.find((p) => p.phase === t.phase)
-          setDimensions(phase?.dimensions.length ? phase.dimensions : DEFAULT_DIMENSIONS)
-        })
-      } else {
-        setDimensions(DEFAULT_DIMENSIONS)
-      }
+      const stage = phaseToStage(t.phase)
 
-      const raw = localStorage.getItem(DRAFT_KEY(taskId))
-      if (raw) {
-        try {
-          const draft = JSON.parse(raw) as {
-            scores: Record<string, number>
-            comment: string
-            recommend: boolean
+      // Fetch rich volume content from MockReviewService
+      reviewService.getProject(t.projectId, stage).then(setProjectPayload)
+
+      // Fetch annotations visible to this expert
+      reviewService.getAnnotations(t.projectId, {
+        role: 'self', expertId: MOCK_EXPERT_ID, groupId: undefined,
+      }).then(setAnnotations)
+
+      // Fetch rubric then restore draft/seed scores
+      if (t.contestId) {
+        reviewService.getRubric(t.contestId).then((dims) => {
+          setRubric(dims)
+
+          const raw = localStorage.getItem(DRAFT_KEY(taskId))
+          if (raw) {
+            try {
+              const draft = JSON.parse(raw) as {
+                scores: Record<string, number>
+                comment: string
+                recommend: boolean
+              }
+              setScores(draft.scores)
+              setComment(draft.comment)
+              setRecommend(draft.recommend)
+              return
+            } catch { /* ignore */ }
           }
-          setScores(draft.scores)
-          setComment(draft.comment)
-          setRecommend(draft.recommend)
-          return
-        } catch { /* ignore */ }
+          const initial: Record<string, number> = {}
+          t.scores.forEach((s) => { initial[s.dimensionId] = s.score })
+          setScores(initial)
+          setComment(t.comment)
+          setRecommend(t.recommendAdvance)
+        })
       }
-      const initial: Record<string, number> = {}
-      t.scores.forEach((s) => { initial[s.dimensionId] = s.score })
-      setScores(initial)
-      setComment(t.comment)
-      setRecommend(t.recommendAdvance)
     })
   }, [taskId])
 
+  // Auto-save draft while scoring
   const draftPayload = useDebounce({ scores, comment, recommend }, 500)
   useEffect(() => {
     if (!taskId || !task || task.status === 'submitted') return
     localStorage.setItem(DRAFT_KEY(taskId), JSON.stringify(draftPayload))
   }, [draftPayload, taskId, task])
+
+  const refreshAnnotations = useCallback(() => {
+    if (!task) return Promise.resolve()
+    return reviewService.getAnnotations(task.projectId, {
+      role: 'self', expertId: MOCK_EXPERT_ID, groupId: undefined,
+    }).then(setAnnotations)
+  }, [task])
 
   const currentIdx = scopedTasks.findIndex((t) => t.id === taskId)
   const prevTask = currentIdx > 0 ? scopedTasks[currentIdx - 1] : null
@@ -109,16 +131,17 @@ export default function ReviewDetailPage() {
   const taskNav = (id: string) =>
     contestId ? `/competitions/${contestId}/review/${id}` : `/review/${id}`
 
-  const totalWeightedScore = dimensions.reduce((sum, dim) => {
-    return sum + ((scores[dim.id] ?? 0) * dim.weight) / 100
+  // rubric.weight is 0-1 fraction; scores are 0-maxScore (100) → totalWeighted ∈ [0, 100]
+  const totalWeightedScore = rubric.reduce((sum, dim) => {
+    return sum + (scores[dim.id] ?? 0) * dim.weight
   }, 0)
 
   const handleSubmit = async () => {
     if (submitting || !task || !taskId) return
 
-    const missing = dimensions.filter((d) => scores[d.id] === undefined)
+    const missing = rubric.filter((d) => scores[d.id] === undefined)
     if (missing.length > 0) {
-      toast.error(`请为所有维度打分（缺少：${missing.map((d) => d.label).join('、')}）`)
+      toast.error(`请为所有维度打分（缺少：${missing.map((d) => d.name).join('、')}）`)
       return
     }
 
@@ -126,20 +149,21 @@ export default function ReviewDetailPage() {
 
     setSubmitting(true)
     try {
-      const patch: Partial<ExpertTask> = {
-        scores: dimensions.map((d) => ({ dimensionId: d.id, score: scores[d.id] ?? 0 })),
-        comment,
-        recommendAdvance: recommend,
-      }
-      await reviewTaskApi.submit(taskId, patch)
+      const stage = phaseToStage(task.phase)
+      await reviewService.submitScore({
+        projectId: task.projectId,
+        expertId: MOCK_EXPERT_ID,
+        stage,
+        dimensionScores: rubric.map((d) => ({ dimensionId: d.id, score: scores[d.id] ?? 0 })),
+        overallComment: comment,
+      })
       localStorage.removeItem(DRAFT_KEY(taskId))
-      setTask((prev) => (prev ? { ...prev, ...patch, status: 'submitted' } : prev))
+      setTask((prev) => (prev ? { ...prev, status: 'submitted' } : prev))
       toast.success('评分已提交！')
 
-      const pendingInScope = scopedTasks.filter(
+      const nextPending = scopedTasks.find(
         (t) => t.status !== 'submitted' && t.id !== taskId,
       )
-      const nextPending = pendingInScope[0]
       if (nextPending) {
         setTimeout(() => navigate(taskNav(nextPending.id)), 1200)
       }
@@ -157,10 +181,20 @@ export default function ReviewDetailPage() {
   }
 
   const isSubmitted = task.status === 'submitted'
+  const stage = phaseToStage(task.phase)
+  const sections = !projectPayload
+    ? []
+    : stage === 'blind'
+      ? projectPayload.blindVolume.sections
+      : [
+          ...projectPayload.blindVolume.sections,
+          ...(projectPayload.openVolume?.sections ?? []),
+        ]
 
   return (
     <div className="space-y-4 pb-20 md:pb-0">
-      {/* Top nav */}
+      <ReviewWatermark />
+      {/* Top nav bar */}
       <div className="flex items-center justify-between gap-2">
         <button
           onClick={() => navigate(backPath)}
@@ -210,18 +244,35 @@ export default function ReviewDetailPage() {
       )}
 
       <div className="flex flex-col md:flex-row gap-4">
-        {/* Left: project info */}
-        <div className="flex-1 space-y-3">
-          {task.projectSummary && (
-            <div className="glass-card p-4 space-y-1.5">
-              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">项目简介</h3>
-              <p className="text-sm text-slate-700 leading-relaxed">{task.projectSummary}</p>
+        {/* Left: project content sections */}
+        <div className="flex-1 space-y-3 min-w-0">
+          {!projectPayload ? (
+            <div className="glass-card p-8 flex justify-center">
+              <div className="w-6 h-6 border-2 border-[#0045c4] border-t-transparent rounded-full animate-spin" />
             </div>
+          ) : (
+            sections.map((section) => (
+              <div key={section.id} className="glass-card p-5 space-y-5">
+                <h3 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 pb-2">
+                  {section.title}
+                </h3>
+                {/* valueHtml contains controlled mock HTML — safe. Use AnnotatedField for selection+annotation */}
+                {section.fields.map((field) => (
+                  <AnnotatedField
+                    key={field.id}
+                    field={field}
+                    projectId={projectPayload.id}
+                    annotations={annotations}
+                    onAnnotationCreated={refreshAnnotations}
+                  />
+                ))}
+              </div>
+            ))
           )}
 
           {task.attachments && task.attachments.length > 0 && (
             <div className="glass-card p-4 space-y-2">
-              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+              <h3 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
                 <Paperclip className="w-3 h-3" /> 附件
               </h3>
               {task.attachments.map((att) => (
@@ -238,51 +289,62 @@ export default function ReviewDetailPage() {
           )}
         </div>
 
-        {/* Right: score panel */}
-        <div className="md:w-72 lg:w-80 flex-shrink-0 space-y-4">
+        {/* Right: sticky score panel — stays in view as left content scrolls */}
+        <div className="md:w-72 lg:w-80 flex-shrink-0">
+          <div className="sticky top-4 space-y-4">
           <div className="glass-card p-5 space-y-5">
             <h3 className="text-sm font-bold text-slate-700">评分</h3>
 
-            {dimensions.map((dim) => {
-              const val = scores[dim.id] ?? 0
-              return (
-                <div key={dim.id} className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <span className="text-sm font-semibold text-slate-700">{dim.label}</span>
-                      <span className="ml-1.5 text-xs text-slate-400">权重 {dim.weight}%</span>
-                    </div>
-                    <span className="text-sm font-black text-[#0045c4]">
-                      {val} / {dim.maxScore}
-                    </span>
-                  </div>
-                  <input
-                    type="range"
-                    min={0}
-                    max={dim.maxScore}
-                    step={1}
-                    value={val}
-                    disabled={isSubmitted}
-                    onChange={(e) =>
-                      setScores((prev) => ({ ...prev, [dim.id]: Number(e.target.value) }))
-                    }
-                    className="w-full accent-[#0045c4] disabled:opacity-50"
-                  />
-                  {dim.description && (
-                    <p className="text-xs text-slate-400">{dim.description}</p>
-                  )}
-                </div>
-              )
-            })}
-
-            <div className="pt-3 border-t border-slate-100">
-              <div className="flex items-center justify-between text-sm">
-                <span className="font-semibold text-slate-600">加权总分</span>
-                <span className="font-black text-lg text-[#0045c4]">
-                  {totalWeightedScore.toFixed(1)}
-                </span>
+            {rubric.length === 0 ? (
+              <div className="flex justify-center py-4">
+                <div className="w-5 h-5 border-2 border-[#0045c4] border-t-transparent rounded-full animate-spin" />
               </div>
-            </div>
+            ) : (
+              rubric.map((dim) => {
+                const val = scores[dim.id] ?? 0
+                return (
+                  <div key={dim.id} className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-sm font-semibold text-slate-700">{dim.name}</span>
+                        <span className="ml-1.5 text-xs text-slate-400">
+                          权重 {(dim.weight * 100).toFixed(0)}%
+                        </span>
+                      </div>
+                      <span className="text-sm font-black text-[#0045c4]">
+                        {val} / {dim.maxScore}
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min={0}
+                      max={dim.maxScore}
+                      step={1}
+                      value={val}
+                      disabled={isSubmitted}
+                      onChange={(e) =>
+                        setScores((prev) => ({ ...prev, [dim.id]: Number(e.target.value) }))
+                      }
+                      className="w-full accent-[#0045c4] disabled:opacity-50"
+                    />
+                    {dim.description && (
+                      <p className="text-xs text-slate-400 leading-relaxed">{dim.description}</p>
+                    )}
+                  </div>
+                )
+              })
+            )}
+
+            {rubric.length > 0 && (
+              <div className="pt-3 border-t border-slate-100">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="font-semibold text-slate-600">加权总分</span>
+                  <span className="font-black text-lg text-[#0045c4]">
+                    {totalWeightedScore.toFixed(1)}
+                  </span>
+                </div>
+              </div>
+            )}
 
             <div className="space-y-1.5">
               <label className="text-sm font-semibold text-slate-700">评语</label>
@@ -307,10 +369,11 @@ export default function ReviewDetailPage() {
               <span className="text-sm font-semibold text-slate-700">推荐晋级</span>
             </label>
           </div>
+          </div>{/* end sticky */}
         </div>
       </div>
 
-      {/* Prev / Next nav */}
+      {/* Prev / Next navigation */}
       <div className="flex items-center justify-between pt-2">
         <button
           disabled={!prevTask}

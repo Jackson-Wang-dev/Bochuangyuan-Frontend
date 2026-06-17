@@ -146,7 +146,8 @@
       "Bash(New-Item -ItemType File \"d:/Bochuangyuan-Frontend/services/bp-review-agent/samples/.gitkeep\" -Force)",
       "Bash(Out-Null)",
       "Bash(New-Item -ItemType File \"d:/Bochuangyuan-Frontend/services/bp-review-agent/outputs/.gitkeep\" -Force)",
-      "Bash(python -m src.main --file samples/sample_bp.txt --compare --dry-run)"
+      "Bash(python -m src.main --file samples/sample_bp.txt --compare --dry-run)",
+      "Bash(pnpm --filter=specialist-window exec tsc --noEmit)"
     ],
     "additionalDirectories": [
       "d:\\Bochuangyuan-Frontend\\apps\\entrepreneur-dashboard\\src"
