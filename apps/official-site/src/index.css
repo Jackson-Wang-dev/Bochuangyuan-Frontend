@@ -1,0 +1,61 @@
+﻿@import "tailwindcss";
+
+@theme {
+  --color-brand-blue: #0045c4;
+  --color-brand-blue-2: #003ba8;
+  --color-brand-ink: #0a1733;
+  --color-brand-paper: #f6f7fb;
+  --color-brand-cyan: #0ea5e9;
+
+  --font-sans: "Inter", "Noto Sans SC", system-ui, sans-serif;
+  --font-serif: "Source Serif 4", "Noto Serif SC", serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+}
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    margin: 0;
+    background: #f6f7fb;
+    color: #0f172a;
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  a {
+    text-decoration: none;
+  }
+}
+
+@layer utilities {
+  .hero-ink {
+    background-color: #0a1733;
+    background-image:
+      radial-gradient(72% 56% at 18% 8%, rgba(0, 69, 196, 0.62) 0%, rgba(10, 23, 51, 0) 62%),
+      radial-gradient(58% 42% at 90% 26%, rgba(14, 165, 233, 0.2) 0%, rgba(10, 23, 51, 0) 68%),
+      radial-gradient(rgba(255, 255, 255, 0.065) 1px, transparent 1px);
+    background-size: auto, auto, 24px 24px;
+  }
+
+  .dashboard-frame {
+    position: relative;
+  }
+
+  .dashboard-frame::before {
+    content: "";
+    position: absolute;
+    inset: 18px -18px -18px 18px;
+    z-index: -1;
+    border-radius: 28px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.05);
+  }
+}

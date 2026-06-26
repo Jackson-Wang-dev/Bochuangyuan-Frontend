@@ -1,12 +1,29 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import './index.css'
+import { CompetitionDetailPage } from './pages/CompetitionDetailPage'
+import { CompetitionListPage } from './pages/CompetitionListPage'
+import { HomePage } from './pages/HomePage'
+import { NewsDetailPage } from './pages/NewsDetailPage'
+import { NewsListPage } from './pages/NewsListPage'
+import { NotFoundPage } from './pages/NotFoundPage'
+import { PastProjectListPage } from './pages/PastProjectListPage'
 
 function App() {
   return (
-    <div style={{ padding: '2rem', fontFamily: 'sans-serif' }}>
-      <h1>博创园 · 官网门户</h1>
-      <p style={{ color: '#64748b' }}>功能开发中...</p>
-    </div>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/competitions" element={<CompetitionListPage />} />
+        <Route path="/competitions/:slug" element={<CompetitionDetailPage />} />
+        <Route path="/projects" element={<PastProjectListPage />} />
+        <Route path="/news" element={<NewsListPage />} />
+        <Route path="/news/:slug" element={<NewsDetailPage />} />
+        <Route path="/home" element={<Navigate to="/" replace />} />
+        <Route path="*" element={<NotFoundPage />} />
+      </Routes>
+    </BrowserRouter>
   )
 }
 
