@@ -1,5 +1,5 @@
 import { mockCompetitionDetails, mockHomeData, mockNewsBySlug } from '../data/mockSiteData'
-import type { CompetitionDetail, SiteHomeData, SiteNewsArticle, SitePastProject } from '../types'
+import type { CompetitionDetail, SiteHomeData, SiteNewsArticle } from '../types'
 
 const API_BASE = (import.meta as ImportMeta & { env: { VITE_BC_SITE_API_BASE_URL?: string } }).env.VITE_BC_SITE_API_BASE_URL?.replace(/\/$/, '') ?? ''
 
@@ -26,10 +26,6 @@ export function getCompetitions() {
 export function getCompetitionDetail(slug: string) {
   const fallback = (mockCompetitionDetails[slug] ?? mockHomeData.competitions[0]!) as CompetitionDetail
   return requestJson<CompetitionDetail>(`/site/competitions/${slug}`, fallback)
-}
-
-export function getPastProjects() {
-  return requestJson<SitePastProject[]>('/site/past-projects', mockHomeData.pastProjects)
 }
 
 export function getNewsList() {

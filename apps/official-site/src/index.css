@@ -45,17 +45,15 @@
     background-size: auto, auto, 24px 24px;
   }
 
-  .dashboard-frame {
-    position: relative;
+  .hero-light {
+    background-color: #f3f6fd;
+    background-image:
+      radial-gradient(60% 50% at 15% 0%, rgba(0, 69, 196, 0.16) 0%, rgba(243, 246, 253, 0) 70%),
+      radial-gradient(50% 45% at 88% 12%, rgba(14, 165, 233, 0.14) 0%, rgba(243, 246, 253, 0) 70%);
   }
 
-  .dashboard-frame::before {
-    content: "";
-    position: absolute;
-    inset: 18px -18px -18px 18px;
-    z-index: -1;
-    border-radius: 28px;
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    background: rgba(255, 255, 255, 0.05);
+  .console-panel {
+    background-color: #0a1733;
+    background-image: radial-gradient(120% 120% at 100% 0%, rgba(0, 69, 196, 0.35) 0%, rgba(10, 23, 51, 0) 60%);
   }
 }

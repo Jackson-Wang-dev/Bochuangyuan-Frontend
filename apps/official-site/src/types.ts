@@ -1,11 +1,29 @@
 export interface HeroStat {
   value: string
   label: string
+  trend: number[]
+}
+
+export interface SiteNavGroupItem {
+  label: string
+  href: string
+  desc?: string
+}
+
+export interface SiteNavGroup {
+  title: string
+  items: SiteNavGroupItem[]
 }
 
 export interface SiteNavItem {
   label: string
   href: string
+  groups?: SiteNavGroup[]
+}
+
+export interface SitePartner {
+  name: string
+  tag: string
 }
 
 export interface SiteFeature {
@@ -13,6 +31,8 @@ export interface SiteFeature {
   title: string
   desc: string
 }
+
+export type CompetitionCategory = '创新赛事' | '人才项目'
 
 export interface SiteCompetition {
   slug: string
@@ -27,6 +47,9 @@ export interface SiteCompetition {
   reward: string
   rewardUnit: string
   tags: string[]
+  image: string
+  category: CompetitionCategory
+  tracks: string[]
 }
 
 export interface CompetitionTimelineItem {
@@ -44,20 +67,6 @@ export interface CompetitionDetail extends SiteCompetition {
   services: string[]
 }
 
-export interface SitePastProject {
-  slug: string
-  name: string
-  year: string
-  field: string
-  competition: string
-  location: string
-  stage: string
-  highlight: string
-  summary: string
-  tags: string[]
-  metrics: Array<{ label: string; value: string }>
-}
-
 export interface SiteNewsArticle {
   slug: string
   type: string
@@ -73,7 +82,7 @@ export interface SiteHomeData {
   stats: HeroStat[]
   ecosystem: SiteFeature[]
   competitions: SiteCompetition[]
-  pastProjects: SitePastProject[]
   products: SiteFeature[]
   news: SiteNewsArticle[]
+  partners: SitePartner[]
 }

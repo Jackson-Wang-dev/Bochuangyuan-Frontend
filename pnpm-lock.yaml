@@ -213,6 +213,9 @@ importers:
 
   apps/official-site:
     dependencies:
+      '@bochuangyuan/api':
+        specifier: workspace:*
+        version: link:../../packages/api
       '@bochuangyuan/shared':
         specifier: workspace:*
         version: link:../../packages/shared
@@ -240,6 +243,9 @@ importers:
       vite:
         specifier: ^6.2.3
         version: 6.4.2(@types/node@22.19.19)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.22.4)
+      zustand:
+        specifier: ^5.0.5
+        version: 5.0.13(@types/react@19.2.15)(immer@11.1.8)(react@19.2.6)(use-sync-external-store@1.6.0(react@19.2.6))
     devDependencies:
       '@types/node':
         specifier: ^22.14.0

@@ -1,14 +1,17 @@
-import { ArrowRight, CalendarDays, CheckCircle2, MapPin, Share2, Sparkles, Trophy } from 'lucide-react'
+import { ArrowRight, CalendarDays, CheckCircle2, LogIn, MapPin, Share2, Sparkles, Trophy } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
 import { getCompetitionDetail } from '../api/site'
 import { DetailPanel, SiteFooter, SiteHeader } from '../components'
 import { mockHomeData } from '../data/mockSiteData'
+import { getDashboardUrl, hasDashboardUrl } from '../lib/dashboard'
+import { useSiteAuth } from '../store/siteAuth'
 import type { CompetitionDetail as CompetitionDetailType } from '../types'
 
 export function CompetitionDetailPage() {
   const { slug } = useParams()
   const [item, setItem] = useState<CompetitionDetailType | null>(null)
+  const { user, accessToken, openLogin } = useSiteAuth()
 
   useEffect(() => {
     if (!slug) return
@@ -81,6 +84,30 @@ export function CompetitionDetailPage() {
                   分享 <Share2 className="h-4 w-4" />
                 </button>
               </div>
+            </section>
+            <section className="rounded-2xl border border-brand-blue/20 bg-brand-blue/6 p-6">
+              {user ? (
+                hasDashboardUrl() ? (
+                  <a
+                    href={getDashboardUrl(`/competition/${slug}/register`, accessToken)}
+                    className="flex items-center justify-center gap-2 rounded-xl bg-brand-blue px-4 py-3 text-sm font-semibold text-white hover:bg-brand-blue-2"
+                  >
+                    立即报名 <ArrowRight className="h-4 w-4" />
+                  </a>
+                ) : (
+                  <div className="rounded-xl border border-dashed border-brand-blue/30 px-4 py-3 text-center text-sm text-slate-500">
+                    创业者工作台地址未配置，暂不可跳转报名
+                  </div>
+                )
+              ) : (
+                <button
+                  onClick={openLogin}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-brand-blue px-4 py-3 text-sm font-semibold text-white hover:bg-brand-blue-2"
+                >
+                  登录后报名 <LogIn className="h-4 w-4" />
+                </button>
+              )}
+              <p className="mt-3 text-center text-xs text-slate-500">报名将跳转至创业者工作台，复用您的项目资料完成赛事报名。</p>
             </section>
           </div>
         </div>

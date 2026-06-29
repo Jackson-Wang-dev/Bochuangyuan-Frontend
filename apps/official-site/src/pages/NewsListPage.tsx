@@ -6,8 +6,11 @@ import { SiteFooter, SiteHeader } from '../components'
 import { mockHomeData } from '../data/mockSiteData'
 import type { SiteNewsArticle } from '../types'
 
+const ALL_CATEGORY = '全部'
+
 export function NewsListPage() {
   const [items, setItems] = useState<SiteNewsArticle[]>(mockHomeData.news)
+  const [activeCategory, setActiveCategory] = useState<string>(ALL_CATEGORY)
 
   useEffect(() => {
     let alive = true
@@ -18,7 +21,11 @@ export function NewsListPage() {
   }, [])
 
   const categories = useMemo(() => Array.from(new Set(items.map((item) => item.type))), [items])
-  const featured = items[0]
+  const filteredItems = useMemo(
+    () => (activeCategory === ALL_CATEGORY ? items : items.filter((item) => item.type === activeCategory)),
+    [items, activeCategory],
+  )
+  const featured = filteredItems[0]
 
   return (
     <main className="min-h-screen bg-brand-paper text-slate-900">
@@ -29,8 +36,16 @@ export function NewsListPage() {
           <h1 className="mt-4 text-4xl font-semibold tracking-tight md:text-5xl">新闻资讯与政策动态</h1>
           <p className="mt-5 max-w-2xl text-base leading-8 text-white/72">聚合政策解读、赛事预告、产业观察与项目服务方法，后续可接入 CMS 或真实资讯接口。</p>
           <div className="mt-8 flex flex-wrap gap-2">
-            {categories.map((category) => (
-              <span key={category} className="rounded-full border border-white/12 bg-white/8 px-4 py-2 text-sm text-white/72">{category}</span>
+            {[ALL_CATEGORY, ...categories].map((category) => (
+              <button
+                key={category}
+                onClick={() => setActiveCategory(category)}
+                className={`rounded-full border px-4 py-2 text-sm transition-colors ${
+                  activeCategory === category ? 'border-white bg-white text-brand-ink' : 'border-white/12 bg-white/8 text-white/72 hover:bg-white/12'
+                }`}
+              >
+                {category}
+              </button>
             ))}
           </div>
         </div>
@@ -57,8 +72,12 @@ export function NewsListPage() {
               </article>
             )}
 
+            {!featured && (
+              <div className="rounded-2xl border border-slate-200 bg-white p-6 text-center text-sm text-slate-500 shadow-sm">该分类下暂无资讯。</div>
+            )}
+
             <div className="divide-y divide-slate-200 rounded-2xl border border-slate-200 bg-white px-6 shadow-sm">
-              {items.slice(1).map((item) => (
+              {filteredItems.slice(1).map((item) => (
                 <article key={item.slug} className="py-6">
                   <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500">
                     <span className="rounded-lg bg-brand-blue/8 px-2.5 py-1 font-medium text-brand-blue">{item.type}</span>
@@ -82,10 +101,16 @@ export function NewsListPage() {
               <div className="flex items-center gap-2 text-sm font-semibold text-slate-950"><Newspaper className="h-4 w-4 text-brand-blue" /> 栏目分类</div>
               <div className="mt-4 space-y-2">
                 {categories.map((category) => (
-                  <div key={category} className="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2 text-sm text-slate-600">
+                  <button
+                    key={category}
+                    onClick={() => setActiveCategory(category)}
+                    className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm transition-colors ${
+                      activeCategory === category ? 'bg-brand-blue/10 text-brand-blue' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+                    }`}
+                  >
                     <span>{category}</span>
                     <span className="font-mono text-xs text-slate-400">{items.filter((item) => item.type === category).length}</span>
-                  </div>
+                  </button>
                 ))}
               </div>
             </section>
