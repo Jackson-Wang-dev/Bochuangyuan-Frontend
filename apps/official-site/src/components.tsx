@@ -11,6 +11,7 @@ import {
   Clock,
   FileCheck2,
   Globe2,
+  KeyRound,
   Landmark,
   LineChart,
   LogOut,
@@ -23,6 +24,7 @@ import {
   Trophy,
   User,
   Users,
+  X,
   type LucideIcon,
 } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
@@ -180,39 +182,53 @@ export function LoginModal({
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 px-4" onClick={onClose}>
-      <div className="w-full max-w-sm rounded-2xl bg-white p-6 text-slate-900 shadow-2xl" onClick={(event) => event.stopPropagation()}>
-        <h3 className="text-lg font-semibold text-slate-950">创业者登录</h3>
-        <p className="mt-2 text-sm leading-6 text-slate-500">使用您的博创网账号登录，登录后可在站内报名赛事并直接进入创业者工作台。</p>
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/60 px-4 backdrop-blur-sm" onClick={onClose}>
+      <div className="w-full max-w-sm overflow-hidden rounded-3xl bg-white text-slate-900 shadow-2xl" onClick={(event) => event.stopPropagation()}>
+        <div className="hero-ink relative px-6 pb-7 pt-6 text-white">
+          <button onClick={onClose} aria-label="关闭" className="absolute right-4 top-4 rounded-full p-1.5 text-white/60 hover:bg-white/10 hover:text-white">
+            <X className="h-4 w-4" />
+          </button>
+          <BochuangLogo className="h-10 w-10" />
+          <h3 className="mt-4 text-lg font-semibold">创业者登录</h3>
+          <p className="mt-1.5 text-sm leading-6 text-white/68">登录后可在站内报名赛事，并直接进入创业者工作台。</p>
+        </div>
         <form
-          className="mt-5 space-y-3"
+          className="space-y-3 px-6 py-6"
           onSubmit={(event) => {
             event.preventDefault()
             void onLogin(username, password)
           }}
         >
-          <input
-            value={username}
-            onChange={(event) => setUsername(event.target.value)}
-            placeholder="用户名"
-            required
-            autoComplete="username"
-            className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm outline-none focus:border-brand-blue"
-          />
-          <input
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            placeholder="密码"
-            type="password"
-            required
-            autoComplete="current-password"
-            className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm outline-none focus:border-brand-blue"
-          />
-          {error && <p className="text-sm text-rose-600">{error}</p>}
+          <div className="relative">
+            <User className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <input
+              value={username}
+              onChange={(event) => setUsername(event.target.value)}
+              placeholder="用户名"
+              required
+              autoComplete="username"
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-3.5 text-sm outline-none focus:border-brand-blue focus:bg-white focus:ring-2 focus:ring-brand-blue/12"
+            />
+          </div>
+          <div className="relative">
+            <KeyRound className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <input
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              placeholder="密码"
+              type="password"
+              required
+              autoComplete="current-password"
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-3.5 text-sm outline-none focus:border-brand-blue focus:bg-white focus:ring-2 focus:ring-brand-blue/12"
+            />
+          </div>
+          {error && (
+            <p className="rounded-xl bg-rose-50 px-3.5 py-2 text-sm text-rose-600">{error}</p>
+          )}
           <button
             type="submit"
             disabled={isLoggingIn}
-            className="w-full rounded-xl bg-brand-blue px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-blue-2 disabled:opacity-60"
+            className="w-full rounded-xl bg-brand-blue py-2.5 text-sm font-semibold text-white shadow-sm shadow-brand-blue/30 hover:bg-brand-blue-2 disabled:opacity-60"
           >
             {isLoggingIn ? '登录中…' : '登录'}
           </button>
@@ -304,7 +320,8 @@ export function PartnersStrip({ partners }: { partners: SitePartner[] }) {
 export function CompetitionCard({ item }: { item: SiteCompetition }) {
   const countdown = formatCountdown(item.deadline)
   const { user, accessToken, openLogin } = useSiteAuth()
-  const registerHref = user && hasDashboardUrl() ? getDashboardUrl(`/competition/${item.slug}/register`, accessToken) : undefined
+  const dashboardConfigured = hasDashboardUrl()
+  const registerHref = user && dashboardConfigured ? getDashboardUrl(`/competition/${item.slug}/register`, accessToken) : undefined
   return (
     <article className="flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
       <div className="relative h-44 w-full overflow-hidden bg-slate-100">
@@ -349,6 +366,14 @@ export function CompetitionCard({ item }: { item: SiteCompetition }) {
             >
               报名赛事 <ArrowRight className="h-4 w-4" />
             </a>
+          ) : user ? (
+            <button
+              disabled
+              title="创业者工作台地址未配置，暂不可跳转报名"
+              className="inline-flex flex-1 cursor-not-allowed items-center justify-center gap-1.5 rounded-xl bg-slate-100 px-4 py-2.5 text-sm font-medium text-slate-400"
+            >
+              报名赛事
+            </button>
           ) : (
             <button
               onClick={openLogin}
