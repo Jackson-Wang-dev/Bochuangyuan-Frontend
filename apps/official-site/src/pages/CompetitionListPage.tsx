@@ -38,10 +38,10 @@ export function CompetitionListPage() {
   }
 
   return (
-    <main className="min-h-screen bg-brand-paper text-slate-900">
+    <main id="main-content" className="min-h-screen bg-brand-paper text-slate-900 page-enter">
       <SiteHeader navItems={mockHomeData.navItems} />
       <section className="hero-ink overflow-hidden px-4 pb-12 pt-28 text-white sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-7xl">
+        <div className="mx-auto max-w-7xl animate-[fade-in-up_0.6s_cubic-bezier(0.16,1,0.3,1)_0.1s_both]">
           <p className="font-mono text-xs uppercase tracking-[0.22em] text-white/52">赛事列表</p>
           <h1 className="mt-4 text-4xl font-semibold tracking-tight md:text-5xl">赛事列表与详情预览</h1>
           <p className="mt-5 max-w-2xl text-base leading-8 text-white/72">当前以模拟数据展示，后续可直接切换到真实赛事接口。</p>

@@ -5,7 +5,7 @@ import { mockHomeData } from '../data/mockSiteData'
 
 export function NotFoundPage() {
   return (
-    <main className="min-h-screen bg-brand-paper text-slate-900">
+    <main id="main-content" className="min-h-screen bg-brand-paper text-slate-900">
       <SiteHeader navItems={mockHomeData.navItems} />
       <section className="hero-ink flex min-h-[70vh] items-center px-4 pt-28 text-white sm:px-6 lg:px-8">
         <div className="mx-auto max-w-3xl">

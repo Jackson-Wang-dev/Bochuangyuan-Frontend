@@ -4,6 +4,7 @@ import { Link, Navigate, useParams } from 'react-router-dom'
 import { getNewsDetail } from '../api/site'
 import { DetailPanel, SiteFooter, SiteHeader } from '../components'
 import { mockHomeData } from '../data/mockSiteData'
+import { formatShortDate } from '../lib/competition'
 import type { SiteNewsArticle } from '../types'
 
 export function NewsDetailPage() {
@@ -22,15 +23,15 @@ export function NewsDetailPage() {
   if (!slug) return <Navigate to="/news" replace />
 
   return (
-    <main className="min-h-screen bg-brand-paper text-slate-900">
+    <main id="main-content" className="min-h-screen bg-brand-paper text-slate-900 page-enter">
       <SiteHeader navItems={mockHomeData.navItems} />
       <section className="hero-ink overflow-hidden px-4 pb-12 pt-28 text-white sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-4xl">
+        <div className="mx-auto max-w-4xl animate-[fade-in-up_0.6s_cubic-bezier(0.16,1,0.3,1)_0.1s_both]">
           <p className="font-mono text-xs uppercase tracking-[0.22em] text-white/52">新闻详情</p>
           <h1 className="mt-4 text-4xl font-semibold tracking-tight md:text-5xl">{item?.title ?? '资讯详情'}</h1>
           <p className="mt-5 max-w-2xl text-base leading-8 text-white/72">{item?.summary ?? '正在加载资讯内容。'}</p>
           <div className="mt-8 inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/8 px-4 py-2 text-sm text-white/72">
-            <Clock3 className="h-4 w-4" /> {item?.date ?? '-'} / {item?.type ?? '-'} / {item?.author ?? '-'}
+            <Clock3 className="h-4 w-4" /> {item ? formatShortDate(item.date) : '-'} / {item?.type ?? '-'} / {item?.author ?? '-'}
           </div>
         </div>
       </section>

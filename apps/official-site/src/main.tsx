@@ -2,6 +2,7 @@ import { StrictMode, useEffect } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import './index.css'
+import { SkipToContent } from './components'
 import { CompetitionDetailPage } from './pages/CompetitionDetailPage'
 import { CompetitionListPage } from './pages/CompetitionListPage'
 import { HomePage } from './pages/HomePage'
@@ -23,6 +24,7 @@ function App() {
   return (
     <BrowserRouter>
       <ScrollToTop />
+      <SkipToContent />
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/competitions" element={<CompetitionListPage />} />

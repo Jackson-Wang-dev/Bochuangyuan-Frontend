@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom'
 import { getNewsList } from '../api/site'
 import { SiteFooter, SiteHeader } from '../components'
 import { mockHomeData } from '../data/mockSiteData'
+import { formatShortDate } from '../lib/competition'
 import type { SiteNewsArticle } from '../types'
 
 const ALL_CATEGORY = '全部'
@@ -28,10 +29,10 @@ export function NewsListPage() {
   const featured = filteredItems[0]
 
   return (
-    <main className="min-h-screen bg-brand-paper text-slate-900">
+    <main id="main-content" className="min-h-screen bg-brand-paper text-slate-900 page-enter">
       <SiteHeader navItems={mockHomeData.navItems} />
       <section className="hero-ink overflow-hidden px-4 pb-12 pt-28 text-white sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-7xl">
+        <div className="mx-auto max-w-7xl animate-[fade-in-up_0.6s_cubic-bezier(0.16,1,0.3,1)_0.1s_both]">
           <p className="font-mono text-xs uppercase tracking-[0.22em] text-white/52">博创观察</p>
           <h1 className="mt-4 text-4xl font-semibold tracking-tight md:text-5xl">新闻资讯与政策动态</h1>
           <p className="mt-5 max-w-2xl text-base leading-8 text-white/72">聚合政策解读、赛事预告、产业观察与项目服务方法，后续可接入 CMS 或真实资讯接口。</p>
@@ -59,7 +60,7 @@ export function NewsListPage() {
                 <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500">
                   <span className="rounded-lg bg-brand-blue px-2.5 py-1 font-medium text-white">重点</span>
                   <span>{featured.type}</span>
-                  <span className="inline-flex items-center gap-1.5"><CalendarDays className="h-3.5 w-3.5" /> {featured.date}</span>
+                  <span className="inline-flex items-center gap-1.5"><CalendarDays className="h-3.5 w-3.5" /> {formatShortDate(featured.date)}</span>
                   <span>{featured.author}</span>
                 </div>
                 <h2 className="mt-5 text-2xl font-semibold leading-tight text-slate-950 md:text-3xl">
@@ -81,7 +82,7 @@ export function NewsListPage() {
                 <article key={item.slug} className="py-6">
                   <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500">
                     <span className="rounded-lg bg-brand-blue/8 px-2.5 py-1 font-medium text-brand-blue">{item.type}</span>
-                    <span className="inline-flex items-center gap-1.5"><CalendarDays className="h-3.5 w-3.5" /> {item.date}</span>
+                    <span className="inline-flex items-center gap-1.5"><CalendarDays className="h-3.5 w-3.5" /> {formatShortDate(item.date)}</span>
                     <span>{item.author}</span>
                   </div>
                   <h2 className="mt-3 text-xl font-semibold leading-snug text-slate-950">

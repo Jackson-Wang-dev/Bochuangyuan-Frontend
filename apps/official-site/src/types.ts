@@ -24,6 +24,7 @@ export interface SiteNavItem {
 export interface SitePartner {
   name: string
   tag: string
+  logo?: string
 }
 
 export interface SiteFeature {
@@ -34,17 +35,20 @@ export interface SiteFeature {
 
 export type CompetitionCategory = '创新赛事' | '人才项目'
 
+export type CompetitionStatus = '报名开放中' | '项目征集中' | '报名预热中' | '即将开放' | '回顾展示'
+
 export interface SiteCompetition {
+  id: number
   slug: string
   name: string
-  status: string
+  status: CompetitionStatus
   time: string
-  track: string
+  trackDescription: string
   metric: string
   summary: string
   location: string
   deadline: string
-  reward: string
+  reward: number
   rewardUnit: string
   tags: string[]
   image: string
@@ -53,6 +57,7 @@ export interface SiteCompetition {
 }
 
 export interface CompetitionTimelineItem {
+  order: number
   title: string
   date: string
   detail: string
@@ -67,9 +72,12 @@ export interface CompetitionDetail extends SiteCompetition {
   services: string[]
 }
 
+export type NewsType = '政策信息' | '赛事动态' | '科创消息' | '网站动态' | '园区合作' | '人才计划'
+
 export interface SiteNewsArticle {
+  id: number
   slug: string
-  type: string
+  type: NewsType
   title: string
   date: string
   summary: string

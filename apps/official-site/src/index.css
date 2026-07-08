@@ -1,4 +1,4 @@
-﻿@import "tailwindcss";
+@import "tailwindcss";
 
 @theme {
   --color-brand-blue: #0045c4;
@@ -10,6 +10,10 @@
   --font-sans: "Inter", "Noto Sans SC", system-ui, sans-serif;
   --font-serif: "Source Serif 4", "Noto Serif SC", serif;
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  --animate-duration-reveal: 0.7s;
+  --animate-duration-slow: 1s;
+  --animate-duration-fast: 0.35s;
 }
 
 @layer base {
@@ -35,6 +39,83 @@
   }
 }
 
+/* ── Keyframes ────────────────────────────────────────── */
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(28px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fade-in-scale {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes slide-in-left {
+  from {
+    opacity: 0;
+    transform: translateX(-24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slide-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes bar-grow {
+  from { transform: scaleY(0); }
+  to { transform: scaleY(1); }
+}
+
+@keyframes timeline-dot {
+  from {
+    opacity: 0;
+    transform: scale(0);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* ── Scroll reveal classes (toggled via data-visible) ── */
 @layer utilities {
   .hero-ink {
     background-color: #0a1733;
@@ -55,5 +136,97 @@
   .console-panel {
     background-color: #0a1733;
     background-image: radial-gradient(120% 120% at 100% 0%, rgba(0, 69, 196, 0.35) 0%, rgba(10, 23, 51, 0) 60%);
+  }
+
+  /* ── Scroll reveal utilities ── */
+
+  /* Hidden state (before intersection) */
+  .reveal-hidden {
+    opacity: 0;
+    transform: translateY(28px);
+  }
+
+  .reveal-hidden-scale {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+
+  .reveal-hidden-left {
+    opacity: 0;
+    transform: translateX(-24px);
+  }
+
+  .reveal-hidden-right {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+
+  /* Visible state (after intersection) */
+  .reveal-visible {
+    animation: fade-in-up var(--animate-duration-reveal) cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  .reveal-visible-scale {
+    animation: fade-in-scale var(--animate-duration-reveal) cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  .reveal-visible-left {
+    animation: slide-in-left var(--animate-duration-reveal) cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  .reveal-visible-right {
+    animation: slide-in-right var(--animate-duration-reveal) cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  /* ── Stagger children ── */
+  .stagger-children > * {
+    opacity: 0;
+    transform: translateY(20px);
+    animation: fade-in-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  .stagger-children > *:nth-child(1) { animation-delay: 0ms; }
+  .stagger-children > *:nth-child(2) { animation-delay: 80ms; }
+  .stagger-children > *:nth-child(3) { animation-delay: 160ms; }
+  .stagger-children > *:nth-child(4) { animation-delay: 240ms; }
+  .stagger-children > *:nth-child(5) { animation-delay: 320ms; }
+  .stagger-children > *:nth-child(6) { animation-delay: 400ms; }
+
+  /* ── Bar chart animation ── */
+  .bar-animated {
+    transform-origin: bottom;
+    animation: bar-grow 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  /* ── Timeline dot ── */
+  .timeline-dot-animated {
+    animation: timeline-dot 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  }
+
+  /* ── Hover card lift ── */
+  .card-lift {
+    transition: transform var(--animate-duration-fast) cubic-bezier(0.16, 1, 0.3, 1),
+                box-shadow var(--animate-duration-fast) cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .card-lift:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 32px -8px rgba(0, 69, 196, 0.12), 0 4px 12px -4px rgba(0, 0, 0, 0.06);
+  }
+
+  /* ── Shimmer skeleton ── */
+  .skeleton {
+    background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.8s ease-in-out infinite;
+    border-radius: 8px;
+  }
+
+  /* ── Float animation ── */
+  .animate-float {
+    animation: float 3s ease-in-out infinite;
+  }
+
+  /* ── Page transition ── */
+  .page-enter {
+    animation: fade-in 0.35s ease-out both;
   }
 }

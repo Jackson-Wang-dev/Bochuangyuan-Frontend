@@ -18,3 +18,8 @@ export function formatCountdown(deadline: string): string {
   if (days === 0) return '今日截止'
   return `剩 ${days} 天`
 }
+
+export function formatShortDate(isoDate: string): string {
+  const [, month, day] = isoDate.split('-')
+  return month && day ? `${month}.${day}` : isoDate
+}
