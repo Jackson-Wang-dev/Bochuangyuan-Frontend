@@ -230,3 +230,21 @@
     animation: fade-in 0.35s ease-out both;
   }
 }
+
+@layer utilities {
+  .mobile-snap-row {
+    scroll-snap-type: x mandatory;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .mobile-snap-row::-webkit-scrollbar {
+    display: none;
+  }
+
+  .mobile-snap-row > * {
+    scroll-snap-align: center;
+    scroll-snap-stop: always;
+  }
+}

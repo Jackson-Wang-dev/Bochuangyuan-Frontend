@@ -40,10 +40,10 @@ export function CompetitionListPage() {
   return (
     <main id="main-content" className="min-h-screen bg-brand-paper text-slate-900 page-enter">
       <SiteHeader navItems={mockHomeData.navItems} />
-      <section className="hero-ink overflow-hidden px-4 pb-12 pt-28 text-white sm:px-6 lg:px-8">
+      <section className="hero-ink overflow-hidden px-4 pb-10 pt-24 text-white sm:px-6 sm:pb-12 sm:pt-28 lg:px-8">
         <div className="mx-auto max-w-7xl animate-[fade-in-up_0.6s_cubic-bezier(0.16,1,0.3,1)_0.1s_both]">
           <p className="font-mono text-xs uppercase tracking-[0.22em] text-white/52">赛事列表</p>
-          <h1 className="mt-4 text-4xl font-semibold tracking-tight md:text-5xl">赛事列表与详情预览</h1>
+          <h1 className="mt-4 text-3xl font-semibold tracking-tight sm:text-4xl md:text-5xl">赛事列表与详情预览</h1>
           <p className="mt-5 max-w-2xl text-base leading-8 text-white/72">当前以模拟数据展示，后续可直接切换到真实赛事接口。</p>
           <div className="mt-8 flex flex-wrap gap-3 text-sm text-white/72">
             <span className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/8 px-4 py-2"><Trophy className="h-4 w-4" /> 赛事</span>
@@ -58,13 +58,13 @@ export function CompetitionListPage() {
           <SectionHeader eyebrow="赛事目录" title="当前开放赛事" desc="每张卡片都链接到赛事详情页，接口层已保留真实数据替换能力。" />
 
           <div className="mt-8 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:flex-wrap sm:overflow-visible sm:pb-0">
               <span className="mr-1 text-sm font-medium text-slate-500">赛事类型</span>
               {CATEGORY_OPTIONS.map((category) => (
                 <button
                   key={category}
                   onClick={() => setActiveCategory(category)}
-                  className={`rounded-full px-3.5 py-1.5 text-sm transition-colors ${
+                  className={`shrink-0 rounded-full px-3.5 py-2 text-sm transition-colors ${
                     activeCategory === category ? 'bg-brand-blue text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                   }`}
                 >
@@ -72,13 +72,13 @@ export function CompetitionListPage() {
                 </button>
               ))}
             </div>
-            <div className="mt-4 flex flex-wrap items-center gap-2">
+            <div className="mt-4 flex items-center gap-2 overflow-x-auto pb-1 sm:flex-wrap sm:overflow-visible sm:pb-0">
               <span className="mr-1 text-sm font-medium text-slate-500">赛道</span>
               {COMPETITION_TRACK_TAGS.map((track) => (
                 <button
                   key={track}
                   onClick={() => toggleTrack(track)}
-                  className={`rounded-full px-3.5 py-1.5 text-sm transition-colors ${
+                  className={`shrink-0 rounded-full px-3.5 py-2 text-sm transition-colors ${
                     selectedTracks.includes(track) ? 'bg-brand-cyan text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                   }`}
                 >

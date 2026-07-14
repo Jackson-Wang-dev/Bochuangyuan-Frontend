@@ -63,7 +63,6 @@ function HeroInfoCard({ icon, label, value }: { icon: React.ReactNode; label: st
 export function CompetitionDetailPage() {
   const { slug } = useParams()
   const [item, setItem] = useState<CompetitionDetailType | null>(null)
-  const { user, accessToken, openLogin } = useSiteAuth()
 
   useEffect(() => {
     if (!slug) return
@@ -73,8 +72,6 @@ export function CompetitionDetailPage() {
   }, [slug])
 
   if (!slug) return <Navigate to="/competitions" replace />
-
-  const registerHref = user && hasDashboardUrl() ? getDashboardUrl(`/competition/${slug}/register`, accessToken) : undefined
 
   return (
     <main id="main-content" className="min-h-screen bg-brand-paper text-slate-900 page-enter">
@@ -108,27 +105,14 @@ export function CompetitionDetailPage() {
           </p>
 
           {/* CTA Buttons */}
-          <div className="mt-8 flex items-center justify-center gap-3">
-            {registerHref ? (
-              <a
-                href={registerHref}
-                className="inline-flex items-center gap-2 rounded-xl bg-brand-blue px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-brand-blue/25 transition-all duration-200 hover:bg-brand-blue-2 hover:shadow-xl hover:shadow-brand-blue/30"
-              >
-                立即报名 <ArrowRight className="h-4 w-4" />
-              </a>
-            ) : user ? (
-              <div className="inline-flex items-center gap-2 rounded-xl border border-dashed border-white/20 px-6 py-3 text-sm text-white/50">
-                工作台未配置
-              </div>
-            ) : (
-              <button
-                onClick={openLogin}
-                className="inline-flex items-center gap-2 rounded-xl bg-brand-blue px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-brand-blue/25 transition-all duration-200 hover:bg-brand-blue-2 hover:shadow-xl hover:shadow-brand-blue/30"
-              >
-                登录后报名 <LogIn className="h-4 w-4" />
-              </button>
-            )}
-            <button className="inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/8 px-6 py-3 text-sm font-medium text-white backdrop-blur transition-all duration-200 hover:bg-white/15">
+          <div className="mt-8 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">
+            <Link
+              to="/competitions"
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-white px-6 py-3 text-sm font-semibold text-brand-ink shadow-lg shadow-black/10 transition-all duration-200 hover:bg-white/95"
+            >
+              返回赛事列表 <ArrowRight className="h-4 w-4" />
+            </Link>
+            <button className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/8 px-6 py-3 text-sm font-medium text-white backdrop-blur transition-all duration-200 hover:bg-white/15">
               分享赛事 <Share2 className="h-4 w-4" />
             </button>
           </div>
@@ -267,30 +251,15 @@ export function CompetitionDetailPage() {
 
           {/* Bottom CTA */}
           <ScrollReveal delay={300}>
-            <div className="mt-14 rounded-2xl border border-brand-blue/20 bg-brand-ink p-8 text-center">
-              <h3 className="text-xl font-semibold text-white">准备好参赛了吗？</h3>
+            <div className="mt-14 rounded-2xl border border-brand-blue/20 bg-brand-ink p-6 text-center sm:p-8">
+              <h3 className="text-xl font-semibold text-white">赛事信息持续更新</h3>
               <p className="mx-auto mt-2 max-w-lg text-sm leading-7 text-white/60">
-                报名将跳转至创业者工作台，复用您的项目资料完成赛事报名。
+                当前官网仅提供赛事信息浏览，移动端与官网页面不开放报名入口。
               </p>
-              <div className="mt-6 flex items-center justify-center gap-3">
-                {registerHref ? (
-                  <a
-                    href={registerHref}
-                    className="inline-flex items-center gap-2 rounded-xl bg-brand-blue px-6 py-3 text-sm font-semibold text-white transition-all duration-200 hover:bg-brand-blue-2"
-                  >
-                    立即报名 <ArrowRight className="h-4 w-4" />
-                  </a>
-                ) : !user ? (
-                  <button
-                    onClick={openLogin}
-                    className="inline-flex items-center gap-2 rounded-xl bg-brand-blue px-6 py-3 text-sm font-semibold text-white transition-all duration-200 hover:bg-brand-blue-2"
-                  >
-                    登录后报名 <LogIn className="h-4 w-4" />
-                  </button>
-                ) : null}
+              <div className="mt-6 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">
                 <Link
                   to="/competitions"
-                  className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/8 px-6 py-3 text-sm font-medium text-white transition-all duration-200 hover:bg-white/15"
+                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/8 px-6 py-3 text-sm font-medium text-white transition-all duration-200 hover:bg-white/15"
                 >
                   返回赛事列表
                 </Link>

@@ -1,17 +1,39 @@
-import { StrictMode } from 'react'
+﻿import { StrictMode, useState } from 'react'
 import { createRoot } from 'react-dom/client'
+import './styles.css'
 
-function App() {
-  return (
-    <div style={{ padding: '2rem', fontFamily: 'sans-serif' }}>
-      <h1>博创园 · 平台管理后台</h1>
-      <p style={{ color: '#64748b' }}>功能开发中...</p>
-    </div>
-  )
+type Section={name:string;note:string;count:string;enabled:boolean}
+const siteMenus=['官网概览','首页装修','内容管理','展示编排','基础设置','发布管理']
+const eventMenus=['赛事后台配置','赛事资源分配','赛事节点管控','赛事结果管理','报名数据看板']
+const seed:Section[]=[
+{name:'品牌首屏',note:'品牌定位、主标题、简介与核心数据',count:'4 项数据',enabled:true},
+{name:'生态体系',note:'线上平台与线下资源协同能力',count:'5 张卡片',enabled:true},
+{name:'大赛动态',note:'引用赛事库中已发布的重点赛事',count:'3 场赛事',enabled:true},
+{name:'服务产品',note:'创业陪伴的产品与服务能力',count:'4 项服务',enabled:true},
+{name:'合作机构',note:'支持单位、合作高校与产业园区',count:'12 家机构',enabled:true},
+{name:'新闻资讯',note:'政策信息、赛事动态与科创消息',count:'4 篇推荐',enabled:true}]
+const articles=[['关于开展博士后创新创业项目申报的通知','政策信息','已发布'],['2026 长三角未来产业创新大赛正式启动','赛事动态','已发布'],['博创网与临港科技城达成战略合作','园区合作','待审核'],['从实验室到产业化：博士后创业的关键路径','科创消息','草稿']]
+
+function App(){
+ const[menu,setMenu]=useState('首页装修'),[sections,setSections]=useState(seed),[selected,setSelected]=useState(0),[toast,setToast]=useState('')
+ const flash=(x:string)=>{setToast(x);setTimeout(()=>setToast(''),1800)}
+ const move=(i:number,d:number)=>{const j=i+d;if(j<0||j>=sections.length)return;const n=[...sections];[n[i]!,n[j]!]=[n[j]!,n[i]!];setSections(n);setSelected(j)}
+ const current=sections[selected] ?? seed[0]!
+ return <div className="shell"><aside><div className="logo"><b>B</b><strong>博创网管理平台</strong></div><nav>
+ {['▦ 工作台','□ 高潜项目库','□ 项目 CRM 与工单'].map(x=><button key={x}>{x}</button>)}<h4>◇ 赛事运营管理 <span>⌃</span></h4>{eventMenus.map(x=><button className="child" key={x}>{x}</button>)}<button>⌘ 资源匹配 <span>⌄</span></button><button>▥ 数据看板 <span>⌄</span></button><h4 className="site">▣ 官网展示配置 <span>⌃</span></h4>{siteMenus.map(x=><button className={'child '+(menu===x?'active':'')} onClick={()=>setMenu(x)} key={x}>{x}{x==='发布管理'&&<i>2</i>}</button>)}<button>⚙ 系统设置 <span>⌄</span></button></nav></aside>
+ <div className="workspace"><header><div>☰　↻　<b>官网展示配置</b>　›　{menu}</div><div className="search">⌕　搜索　<kbd>Ctrl K</kbd></div><div>⚙　◐　<span className="avatar">管</span></div></header><div className="tabs"><span>工作台 ×</span><span>赛事后台配置 ×</span><span className="on">官网展示配置 ×</span><span>系统设置 ×</span></div><main>
+ <div className="title"><div><h1>{menu}</h1><p>统一维护博创网官网内容、展示顺序与发布状态。</p></div><div><button className="secondary" onClick={()=>flash('已打开整站预览')}>预览官网</button><button className="primary" onClick={()=>flash('发布任务已提交审核')}>提交发布</button></div></div>
+ <div className="metrics"><section><em/><b>官网运行正常</b><small>生产环境</small></section><Metric l="当前版本" v="V1.6.2" n="07-12 18:30 发布"/><Metric l="待发布变更" v="6" n="涉及 3 个栏目" c="blue"/><Metric l="待审核内容" v="2" n="请及时处理" c="orange"/><Metric l="最近更新人" v="陈晓雯" n="今天 16:42"/></div>
+ <div className="panel"><PageTabs menu={menu}/>
+ {menu==='内容管理'?<Content flash={flash}/>:menu==='发布管理'?<Publish flash={flash}/>:menu==='官网概览'?<Overview flash={flash}/>:menu==='展示编排'?<Curation flash={flash}/>:menu==='基础设置'?<Settings flash={flash}/>:<div className="editor"><div className="list"><div className="listhead"><div><h2>首页栏目</h2><p>使用箭头调整官网展示顺序</p></div><button className="secondary small">+ 添加栏目</button></div>{sections.map((x,i)=><div className={'row '+(selected===i?'selected':'')} onClick={()=>setSelected(i)} key={x.name}><span className="grip">⠿</span><small>{String(i+1).padStart(2,'0')}</small><div><b>{x.name}</b><p>{x.note}</p></div><label>{x.count}</label><button onClick={e=>{e.stopPropagation();move(i,-1)}}>↑</button><button onClick={e=>{e.stopPropagation();move(i,1)}}>↓</button><button className={'toggle '+(x.enabled?'yes':'')} onClick={e=>{e.stopPropagation();setSections(sections.map((v,k)=>k===i?{...v,enabled:!v.enabled}:v))}}><i/></button></div>)}</div>
+ <div className="config"><div className="confighead"><div><small>当前编辑</small><h2>{current.name}</h2></div><span>✓ 已保存</span></div><Field l="栏目标题"><input defaultValue={current.name==='品牌首屏'?'陪伴博士后创新创业的全周期':current.name}/></Field><Field l="栏目说明"><textarea defaultValue={current.note}/></Field><Field l="展示规则"><div className="choices"><label><input type="radio" defaultChecked name="r"/> 人工选择</label><label><input type="radio" name="r"/> 自动更新</label></div></Field><Field l="展示端"><div className="choices"><label><input type="checkbox" defaultChecked/> PC 官网</label><label><input type="checkbox" defaultChecked/> 移动官网</label></div></Field><div className="preview"><div>实时预览 <span>▱　▯</span></div><section><small>博创网</small><h3>{current.name==='品牌首屏'?'陪伴博士后创新创业的全周期':current.name}</h3><p>{current.note}</p><b>了解更多 →</b></section></div><footer><button className="secondary">恢复上次发布</button><button className="primary" onClick={()=>flash('配置已保存')}>保存配置</button></footer></div></div>}</div></main></div>{toast&&<div className="toast">✓ {toast}</div>}</div>
 }
-
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <App />
-  </StrictMode>,
-)
+function PageTabs({menu}:{menu:string}){const tabs:Record<string,string[]>={'官网概览':['运营概况','风险提醒','最近更新'],'首页装修':['栏目管理','首屏配置','页面设置'],'内容管理':['新闻资讯','资讯分类'],'展示编排':['赛事推荐','资讯推荐','栏目排序'],'基础设置':['导航设置','页脚设置','站点信息与 SEO'],'发布管理':['待审核','发布记录','历史版本']};return <div className="subtabs">{tabs[menu]?.map((x,i)=><button className={i===0?'on':''} key={x}>{x}</button>)}</div>}
+function Overview({flash}:{flash:(x:string)=>void}){return <div className="overview"><div className="overview-cards">{[['今日访问','3,286','较昨日 ↑ 12.6%'],['赛事点击','842','转化率 25.6%'],['资讯阅读','1,429','平均停留 3m 18s'],['内容总量','126','本周新增 8 条']].map(x=><article key={x[0]}><span>{x[0]}</span><strong>{x[1]}</strong><small>{x[2]}</small></article>)}</div><div className="overview-columns"><section><h2>运营待办</h2>{[['待审核资讯','2 项'],['待发布变更','6 项'],['缺少移动端图片','3 项']].map(x=><div className="todo" key={x[0]}><b>{x[0]}</b><span>{x[1]}</span><button onClick={()=>flash('已进入对应处理页面')}>处理 →</button></div>)}</section><section><h2>栏目健康度</h2>{[['品牌首屏','配置完整','good'],['大赛动态','1 场即将结束','warn'],['合作机构','2 个 Logo 缺失','bad'],['新闻资讯','运行正常','good']].map(x=><div className="health" key={x[0]}><b>{x[0]}</b><span className={x[2]}>{x[1]}</span></div>)}</section></div></div>}
+function Curation({flash}:{flash:(x:string)=>void}){const[data,setData]=useState([['2026 长三角未来产业创新大赛','报名中','置顶'],['生物医药创业团队挑战赛','评审中','推荐'],['博士人才创新创业专项赛','即将开始','推荐']]);return <div className="curation"><div className="curation-head"><div><h2>首页赛事推荐</h2><p>赛事信息来自赛事运营管理，此处只控制展示顺序和推荐标签。</p></div><button className="primary" onClick={()=>flash('已打开赛事选择器')}>+ 选择赛事</button></div>{data.map((x,i)=><div className="curation-row" key={x[0]}><span className="rank">{i+1}</span><div><b>{x[0]}</b><p>引用赛事主数据 · 自动同步状态</p></div><mark className="green">{x[1]}</mark><label>{x[2]}</label><button onClick={()=>setData(data.filter((_,k)=>k!==i))}>移除</button></div>)}<div className="rule-box"><h3>自动补位规则</h3><label><input type="checkbox" defaultChecked/> 推荐不足 3 条时，自动选择报名中的最新赛事</label><button className="primary" onClick={()=>flash('展示编排已保存')}>保存编排</button></div></div>}
+function Settings({flash}:{flash:(x:string)=>void}){return <div className="settings"><section><h2>站点信息</h2><div className="form-grid"><Field l="网站名称"><input defaultValue="博创网"/></Field><Field l="官网域名"><input defaultValue="www.bochuangyuan.cn"/></Field><Field l="默认 SEO 标题"><input defaultValue="博创网｜博士后创新创业陪伴平台"/></Field><Field l="搜索关键词"><input defaultValue="博士后, 创新创业, 赛事, 项目孵化"/></Field></div></section><section><h2>顶部导航</h2>{[['生态体系','#ecosystem'],['大赛动态','/competitions'],['服务产品','#products'],['新闻资讯','/news']].map((x,i)=><div className="nav-setting" key={x[0]}><span>⠿　{i+1}</span><input defaultValue={x[0]}/><input defaultValue={x[1]}/><label><input type="checkbox" defaultChecked/> 启用</label></div>)}</section><section className="settings-footer"><div><h2>页脚与备案</h2><p>沪ICP备2026000000号 · © 2026 博创网</p></div><button className="primary" onClick={()=>flash('基础设置已保存')}>保存设置</button></section></div>}
+function Metric({l,v,n,c=''}:{l:string;v:string;n:string;c?:string}){return <section><label>{l}</label><b className={c}>{v}</b><small>{n}</small></section>}
+function Field({l,children}:{l:string;children:React.ReactNode}){return <label className="field"><b>{l}</b>{children}</label>}
+function Content({flash}:{flash:(x:string)=>void}){const[q,setQ]=useState('');return <div><div className="toolbar"><input placeholder="搜索标题或分类" value={q} onChange={e=>setQ(e.target.value)}/><select><option>全部分类</option></select><select><option>全部状态</option></select><button className="primary" onClick={()=>flash('已创建资讯草稿')}>+ 新建资讯</button></div><table><thead><tr><th>资讯标题</th><th>分类</th><th>状态</th><th>更新时间</th><th>操作</th></tr></thead><tbody>{articles.filter(x=>x[0]!.includes(q)||x[1]!.includes(q)).map(x=><tr key={x[0]}><td><b>{x[0]}</b></td><td>{x[1]}</td><td><mark className={x[2]==='已发布'?'green':''}>{x[2]}</mark></td><td>2026-07-12</td><td><a>编辑</a>　<a>预览</a></td></tr>)}</tbody></table></div>}
+function Publish({flash}:{flash:(x:string)=>void}){return <div className="publish">{[['首页服务产品文案调整','修改了 3 项服务产品的标题和简介'],['新增园区合作资讯','新增文章《博创网与临港科技城达成战略合作》']].map(x=><article key={x[0]}><mark>待审核</mark><h3>{x[0]}</h3><p>{x[1]}</p><small>陈晓雯 · 今天 16:42</small><div><button className="secondary small">查看差异</button><button className="primary small" onClick={()=>flash('该变更已审核通过')}>通过</button></div></article>)}</div>}
+createRoot(document.getElementById('root')!).render(<StrictMode><App/></StrictMode>)
